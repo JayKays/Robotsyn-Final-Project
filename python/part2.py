@@ -24,7 +24,7 @@ def SIFT_matching(img1,img2, threshold = 0.75):
     print(good[0])
     print(f"Found {len(good)} matches with distance thrshold = {threshold}")
     # cv.drawMatchesKnn expects list of lists as matches.
-    
+
     draw_params = dict(matchColor = (0,255,0),
                    singlePointColor = (255,0,0),
                    flags = cv.DrawMatchesFlags_DEFAULT)
@@ -44,13 +44,3 @@ if __name__ == "__main__":
     K = np.loadtxt("../hw5_data_ext/K.txt")
     
     matches = SIFT_matching(img1, img2)
-
-
-
-
-
-
-
-
-
-

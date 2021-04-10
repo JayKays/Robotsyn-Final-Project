@@ -34,7 +34,7 @@ def calibration():
             cv.waitKey(10)
     cv.destroyAllWindows()
 
-    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    ret, mtx, dist, rvecs, tvecs, std_int, std_ext, pVE = cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], None, None)
     mean_error = []
     error_vecs = np.zeros((70*len(images), 2))   # vertical stack of [x, y] errors for all points in all pictures
     for i in range(len(objpoints)): # calculating errors
@@ -59,8 +59,23 @@ def calibration():
     plt.scatter(error_vecs[:,0], error_vecs[:,1])
     plt.show()
 
-    _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
-        cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
+    # _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
+    #     cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
+
+    print('Standard errors')
+    print('Focal length and principal point')
+    print('--------------------------------')
+    print('fx: %g +/- %g' % (K[0,0], std_int[0]))
+    print('fy: %g +/- %g' % (K[1,1], std_int[1]))
+    print('cx: %g +/- %g' % (K[0,2], std_int[2]))
+    print('cy: %g +/- %g' % (K[1,2], std_int[3]))
+    print('Distortion coefficients')
+    print('--------------------------------')
+    print('k1: %g +/- %g' % (dc[0,0], std_int[4]))
+    print('k2: %g +/- %g' % (dc[0,1], std_int[5]))
+    print('p1: %g +/- %g' % (dc[0,2], std_int[6]))
+    print('p2: %g +/- %g' % (dc[0,3], std_int[7]))
+    print('k3: %g +/- %g' % (dc[0,4], std_int[8]))
 
     np.save('mtx.csv', mtx)
     np.save('dist.csv', dist)
