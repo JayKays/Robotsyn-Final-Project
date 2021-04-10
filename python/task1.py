@@ -32,6 +32,7 @@ cv.destroyAllWindows()
 
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 mean_error = []
+print(mtx)
 error_vecs = np.zeros((70*19, 2))   # vertical stack of [x, y] errors for all points in all pictures
 for i in range(len(objpoints)): # calculating errors
     imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
@@ -43,14 +44,13 @@ for i in range(len(objpoints)): # calculating errors
     imgpoints1 = np.array(imgpoints[i])
     imgpoints1 = imgpoints1[:,0,:]
     error_vecs[i*70:(i+1)*70, :] = imgpoints1 - imgpoints2
-#print( "total error: {}".format(mean_error/len(objpoints)) )
 
-# fig = plt.figure(1)       # mean reprojection error plot
-# img_nr = [f"{i+1}" for i in range(19)]
-# plt.bar(img_nr, mean_error)
-# plt.ylabel("mean reprojection error")
-# plt.xlabel("image number")
-# plt.show()
+fig = plt.figure(1)       # mean reprojection error plot
+img_nr = [f"{i+1}" for i in range(19)]
+plt.bar(img_nr, mean_error)
+plt.ylabel("mean reprojection error")
+plt.xlabel("image number")
+plt.show()
 
 fig2 = plt.figure(2)
 plt.scatter(error_vecs[:,0], error_vecs[:,1])
