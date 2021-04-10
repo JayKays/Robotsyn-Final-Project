@@ -1,6 +1,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+"Contains all usefull functions from HW5"
+
+
 def SE3(R,t):
     T = np.eye(4)
     T[:3,:3] = R
