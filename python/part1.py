@@ -34,11 +34,13 @@ def calibration():
             cv.waitKey(10)
     cv.destroyAllWindows()
 
-    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    ret, K, dist, rvecs, tvecs, std_int, std_ext, pVE = \
+        cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], None, None)
+
     mean_error = []
     error_vecs = np.zeros((70*len(images), 2))   # vertical stack of [x, y] errors for all points in all pictures
     for i in range(len(objpoints)): # calculating errors
-        imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+        imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], K, dist)
         error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
         mean_error.append(error)
 
@@ -61,53 +63,71 @@ def calibration():
     plt.xlabel("x error")
     plt.show()
 
-    _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
-        cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
+    # _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
+    #     cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
 
-    np.save('./data/mtx.csv', mtx)
-    np.save('./data/dist.csv', dist)
-    np.save('./data/stdInt.csv', stdDeviationsIntrinsics)
-    np.save('./data/stdExt.csv', stdDeviationsExtrinsics)
+    print('Standard errors')
+    print('Focal length and principal point')
+    print('--------------------------------')
+    print('fx: %g +/- %g' % (K[0,0], std_int[0]))
+    print('fy: %g +/- %g' % (K[1,1], std_int[1]))
+    print('cx: %g +/- %g' % (K[0,2], std_int[2]))
+    print('cy: %g +/- %g' % (K[1,2], std_int[3]))
+    print('Distortion coefficients')
+    print('--------------------------------')
+    print('k1: %g +/- %g' % (dist[0,0], std_int[4]))
+    print('k2: %g +/- %g' % (dist[0,1], std_int[5]))
+    print('p1: %g +/- %g' % (dist[0,2], std_int[6]))
+    print('p2: %g +/- %g' % (dist[0,3], std_int[7]))
+    print('k3: %g +/- %g' % (dist[0,4], std_int[8]))
 
-def undistort(K, dist, stdInt):
+    np.save('mtx.csv', K)
+    np.save('dist.csv', dist)
+    np.save('stdInt.csv', std_int)
+    np.save('stdExt.csv', std_ext)
+
+def undistort_img(img, K, distortion, dist_std, random_dist = False):
+    '''Undistorts and displays a given image'''
+    
+    if random_dist:
+        dist = np.random.normal(distortion, dist_std)
+    else:
+        dist = distortion
+
+    h, w = img.shape[:2]
+    newK, roi = cv.getOptimalNewCameraMatrix(K, dist, (w,h), 1, (w,h))
+
+    #Undistort
+    undistorted = cv.undistort(img, K, dist, None, newK)
+
+    #Crop
+    x, y, w, h = roi
+    undistorted = undistorted[y:y+h, x:x+w]
+    undist_resized = cv.resize(undistorted, (1440, 960))
+
+    #Display undistorted image
+    cv.imshow('undistorted', undist_resized)
+    cv.waitKey(-1)
+
+    cv.destroyAllWindows()
+
+    return undistorted
+
+
+if __name__ == "__main__":
+
+    # calibration()
+    K = np.load('mtx.csv.npy')
+    dist = np.load('dist.csv.npy')
+    stdInt = np.load('stdInt.csv.npy')
     img = cv.imread('../calibration_photos/IMG_3896.JPEG')
-    img_resized = cv.resize(img, (1400, 700))
-    cv.imshow('vanilla image', img_resized)
-    cv.waitKey(10000)
-    cv.destroyAllWindows()
 
-    h,  w = img.shape[:2]
+    # print(stdInt)
+    # print(dist)
+    # undistort(K, dist, stdInt)
+    img_resized = cv.resize(img, (1440, 960))
+    cv.imshow('Original image', img_resized)
+    cv.waitKey(-1)
 
-    newcameramtx, roi = cv.getOptimalNewCameraMatrix(K, dist, (w,h), 1, (w,h))
-
-    dist[4:9] = dist[4:9] + stdInt[4:9].T
-    # undistort
-    dst = cv.undistort(img, K, dist, None, newcameramtx)
-    # crop the image
-    x, y, w, h = roi
-    dst = dst[y:y+h, x:x+w]
-    cv.imwrite('calibresult.png', dst)
-    dst_resized = cv.resize(dst, (1400, 700))
-    cv.imshow('undistorted+', dst_resized)
-    cv.waitKey(10000)
-    cv.destroyAllWindows()
-
-
-    dist[4:9] = dist[4:9] - stdInt[4:9].T
-    # undistort
-    dst = cv.undistort(img, K, dist, None, newcameramtx)
-    # crop the image
-    x, y, w, h = roi
-    dst = dst[y:y+h, x:x+w]
-    cv.imwrite('calibresult.png', dst)
-    dst_resized = cv.resize(dst, (1400, 700))
-    cv.imshow('undistorted-', dst_resized)
-    cv.waitKey(10000)
-    cv.destroyAllWindows()
-
-calibration()
-K = np.load('./data/mtx.csv.npy')
-dist = np.load('./data/dist.csv.npy')
-stdInt = np.load('./data/stdInt.csv.npy')
-print(stdInt)
-undistort(K, dist, stdInt)
+    for i in range(10):
+        undistort_img(img, K, dist[0,:], stdInt.T[0,5:10], random_dist=True)
