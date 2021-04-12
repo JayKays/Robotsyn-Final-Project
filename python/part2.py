@@ -3,9 +3,6 @@ from matplotlib import pyplot as plt
 from cv2 import cv2 as cv
 from HW5 import *
 
-
-
-
 def SIFT_matching(img1,img2, threshold = 0.75):
 
     # Initiate SIFT detector
@@ -35,8 +32,6 @@ def SIFT_matching(img1,img2, threshold = 0.75):
     return good
 
 
-
-
 if __name__ == "__main__":
 
     img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg")
@@ -44,13 +39,3 @@ if __name__ == "__main__":
     K = np.loadtxt("../hw5_data_ext/K.txt")
     
     matches = SIFT_matching(img1, img2)
-
-
-
-
-
-
-
-
-
-

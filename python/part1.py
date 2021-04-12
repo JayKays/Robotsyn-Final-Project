@@ -15,7 +15,7 @@ def calibration():
     imgpoints = [] # 2d points in image plane.
     images = glob.glob('../calibration_photos/*.JPEG') # IMG_3896 to IMG_3914
 
-    images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
+    #images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
 
     for fname in images:
         img = cv.imread(fname)
@@ -57,15 +57,17 @@ def calibration():
 
     fig2 = plt.figure(2)
     plt.scatter(error_vecs[:,0], error_vecs[:,1])
+    plt.ylabel("y error")
+    plt.xlabel("x error")
     plt.show()
 
     _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
         cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
 
-    np.save('mtx.csv', mtx)
-    np.save('dist.csv', dist)
-    np.save('stdInt.csv', stdDeviationsIntrinsics)
-    np.save('stdExt.csv', stdDeviationsExtrinsics)
+    np.save('./data/mtx.csv', mtx)
+    np.save('./data/dist.csv', dist)
+    np.save('./data/stdInt.csv', stdDeviationsIntrinsics)
+    np.save('./data/stdExt.csv', stdDeviationsExtrinsics)
 
 def undistort(K, dist, stdInt):
     img = cv.imread('../calibration_photos/IMG_3896.JPEG')
@@ -103,10 +105,9 @@ def undistort(K, dist, stdInt):
     cv.waitKey(10000)
     cv.destroyAllWindows()
 
-
-K = np.load('mtx.csv.npy')
-dist = np.load('dist.csv.npy')
-stdInt = np.load('stdInt.csv.npy')
-print(stdInt.shape)
-print(dist.shape)
+calibration()
+K = np.load('./data/mtx.csv.npy')
+dist = np.load('./data/dist.csv.npy')
+stdInt = np.load('./data/stdInt.csv.npy')
+print(stdInt)
 undistort(K, dist, stdInt)
