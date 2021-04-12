@@ -116,7 +116,7 @@ def triangulate_many(xy1, xy2, P1, P2):
         X[:,i] = VT[3,:]/VT[3,3]
     return X
 
-def draw_point_cloud(X, I1, uv1, xlim, ylim, zlim):
+def draw_point_cloud(X, I1, uv1, xlim, ylim, zlim, name = '3D point cloud'):
     assert uv1.shape[1] == X.shape[1], 'If you get this error message in Task 4, it probably means that you did not extract the inliers of all the arrays (uv1,uv2,xy1,xy2) before calling draw_point_cloud.'
 
     # We take I1 and uv1 as arguments in order to assign a color to each
@@ -126,7 +126,7 @@ def draw_point_cloud(X, I1, uv1, xlim, ylim, zlim):
     # Matplotlib doesn't let you easily change the up-axis to match the
     # convention we use in the course (it assumes Z is upward). So this
     # code does a silly rearrangement of the Y and Z arguments.
-    plt.figure('3D point cloud', figsize=(6,6))
+    plt.figure(name, figsize=(6,6))
     ax = plt.axes(projection='3d')
     ax.scatter(X[0,:], X[2,:], X[1,:], c=c, marker='.', depthshade=False)
     ax.grid(False)
