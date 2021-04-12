@@ -81,10 +81,51 @@ def calibration():
     print('p2: %g +/- %g' % (dist[0,3], std_int[7]))
     print('k3: %g +/- %g' % (dist[0,4], std_int[8]))
 
-    np.save('mtx.csv', K)
-    np.save('dist.csv', dist)
-    np.save('stdInt.csv', std_int)
-    np.save('stdExt.csv', std_ext)
+    np.savetxt('cam_matrix.txt', K)
+    np.savetxt('dist.txt', dist)
+    np.savetxt('stdInt.txt', std_int)
+    np.savetxt('stdExt.txt', std_ext)
+
+def undistort(K, dist,stdInt):
+    img = cv.imread('../calibration_photos/IMG_3896.JPEG')
+    img_resized = cv.resize(img, (1400, 700))
+
+    normal_dist = np.random.normal(dist[0,:], stdInt.T[0,5:10])
+
+    cv.imshow('vanilla image', img_resized)
+    cv.waitKey(10000)
+    cv.destroyAllWindows()
+
+    h, w = img.shape[:2]
+
+    #Undistort
+    undistorted = cv.undistort(img, K, dist, None, newK)
+
+    dist[4:9] = dist[4:9] + stdInt[4:9].T
+
+    # undistort
+    dst = cv.undistort(img, K, dist, None, newcameramtx)
+    # crop the image
+    # x, y, w, h = roi
+    # dst = dst[y:y+h, x:x+w]
+    # cv.imwrite('calibresult.png', dst)
+    # dst_resized = cv.resize(dst, (1400, 700))
+    # cv.imshow('undistorted+', dst_resized)
+    # cv.waitKey(10000)
+    # cv.destroyAllWindows()
+
+
+    # dist[4:9] = dist[4:9] - stdInt[4:9].T
+    # # undistort
+    # dst = cv.undistort(img, K, dist, None, K)
+    # # crop the image
+    # x, y, w, h = roi
+    # dst = dst[y:y+h, x:x+w]
+    # cv.imwrite('calibresult.png', dst)
+    # dst_resized = cv.resize(dst, (1400, 700))
+    # cv.imshow('undistorted-', dst_resized)
+    # cv.waitKey(10000)
+    # cv.destroyAllWindows()
 
 def undistort_img(img, K, distortion, dist_std, random_dist = False):
     '''Undistorts and displays a given image'''
@@ -117,9 +158,9 @@ def undistort_img(img, K, distortion, dist_std, random_dist = False):
 if __name__ == "__main__":
 
     # calibration()
-    K = np.load('mtx.csv.npy')
-    dist = np.load('dist.csv.npy')
-    stdInt = np.load('stdInt.csv.npy')
+    K = np.loadtxt('cam_matrix.txt')
+    dist = np.loadtxt('dist.txt')
+    stdInt = np.loadtxt('stdInt.txt')
     img = cv.imread('../calibration_photos/IMG_3896.JPEG')
 
     # print(stdInt)
@@ -130,4 +171,4 @@ if __name__ == "__main__":
     cv.waitKey(-1)
 
     for i in range(10):
-        undistort_img(img, K, dist[0,:], stdInt.T[0,5:10], random_dist=True)
+        undistort_img(img, K, dist[:], stdInt.T[5:10], random_dist=True)

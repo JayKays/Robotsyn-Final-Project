@@ -130,25 +130,20 @@ def residual(p, R0, K, uv):
     X = np.vstack((np.reshape(p[6:], (3, n_points)), np.ones(n_points)))
     T = pose(p[:3], p[3:6], R0)
 
-    uv2 = project(K, T @ X)
+    uv_hat = project(K, T @ X)
 
-    r = uv2 - uv
+    r = uv_hat - uv
 
     return np.ravel(r)
 
-def bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indices):
-    m = camera_indices.size * 2
-    n = n_cameras * 6 + n_points * 3
+def bundle_adjustment_sparsity(n_points):
+    m = n_points * 2
+    n = 6 + n_points * 3
     A = lil_matrix((m, n), dtype=int)
-
-    i = np.arange(camera_indices.size)
-    for s in range(6):
-        A[2 * i, camera_indices * 6 + s] = 1
-        A[2 * i + 1, camera_indices * 6 + s] = 1
-
-    for s in range(3):
-        A[2 * i, n_cameras * 6 + point_indices * 3 + s] = 1
-        A[2 * i + 1, n_cameras * 6 + point_indices * 3 + s] = 1
+    A[:, :6] = 1
+    
+    for s in range(n_points):
+        A[s*2:(s+1)*2, s*3 + 6:(s+1)*3 + 6] = 1
 
     return A
 
@@ -158,16 +153,23 @@ if __name__ == "__main__":
     img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
     K = np.loadtxt("../hw5_data_ext/K.txt")
     
-    # FLANN_matching(img1, img2)
+    #Matching
+    FLANN_matching(img1, img2)
 
     uv1 = np.loadtxt('uv1.txt')
     uv2 = np.loadtxt('uv2.txt')
-
     xy1 = np.linalg.inv(K) @ uv1
     xy2 = np.linalg.inv(K) @ uv2
 
+    #Estimating E
     E, inliers = estimate_E_ransac(xy1, xy2, K)
+    np.savetxt('inliers.txt', inliers)
+    np.savetxt('E.txt', E)
 
+    inliers = np.loadtxt('inliers.txt').astype(bool)
+    E = np.loadtxt('E.txt')
+
+    #Extracting inlier set
     xy1 = xy1[:,inliers]
     xy2 = xy2[:,inliers]
     uv1 = uv1[:,inliers]
@@ -175,23 +177,36 @@ if __name__ == "__main__":
 
     E = estimate_E(xy1, xy2)
 
+    #Extracting pose from E
     T4 = decompose_E(E)
     T, X = choose_pose(T4) 
 
-    # R0 = T[:3,:3]
-    # t0 = T[:3,-1]
+    E, inliers = estimate_E_ransac(xy1, xy2, K)
 
-    # p0 = np.hstack(([0,0,0], t0, np.ravel(X[:3,:])))
+    #Least squares bundle adjustment
+    R0 = T[:3,:3]
+    t0 = T[:3,-1]
+    p0 = np.hstack(([0,0,0], t0, np.ravel(X[:3,:])))
 
-    # res_func = lambda p: residual(p, R0, K, uv2[:2,:])
-    # sparsity = bundle_adjustment_sparsity(2, X.shape[1])
-    # p_opt = least_squares(res_func, p0)
+    res_func = lambda p: residual(p, R0, K, uv2[:2,:])
 
+    sparsity = bundle_adjustment_sparsity(X.shape[1])
+    res = least_squares(res_func, p0, verbose=2, jac_sparsity=sparsity)
+    p_opt = res['x']
+
+    #Extracting camera pose and 3d points from bundle adjustment
+    n_points= uv1.shape[1]
+    T_opt = pose(p_opt[:3], p_opt[3:6], R0)
+    X_opt = np.vstack((np.reshape(p_opt[6:], (3, n_points)), np.ones(n_points)))
+
+    np.savetxt('3D_points.txt', X_opt)
+
+    #Plotting results
     img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
     img2 = plt.imread("../hw5_data_ext/IMG_8228.jpg")/255.
     np.random.seed(123) # Comment out to get a random selection each time
     draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
-    draw_point_cloud(X, img1, uv1, xlim=[-1,+1], ylim=[-1,+1], zlim=[1,3])
-    plt.show()
+    draw_point_cloud(X_opt, img1, uv1, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5], name = 'Optimal')
+    draw_point_cloud(X, img1, uv1, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5])
 
-
+    # plt.show()
