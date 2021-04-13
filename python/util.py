@@ -1,6 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def jacobian(f,x,eps):
+    '''Calculates central difference estimation
+    of jacobian for given function f(x) '''
+
+    gradient = lambda h: (f(x + h) - f(x-h))/(2*eps)
+    
+    return np.apply_along_axis(gradient, 0, np.eye(x.shape[0])*eps)
+
 def project(K, X):
     uvw = K@X[:3,:]
     uvw /= uvw[2,:]
