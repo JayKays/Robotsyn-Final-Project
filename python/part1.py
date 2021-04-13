@@ -13,7 +13,7 @@ def calibration():
     # Arrays to store object points and image points from all the images.
     objpoints = [] # 3d point in real world space
     imgpoints = [] # 2d points in image plane.
-    images = glob.glob('../calibration_photos/*.JPEG') # IMG_3896 to IMG_3914
+    images = glob.glob('../calibration_photos2/*.JPEG') # IMG_3896 to IMG_3914
 
     images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
 
@@ -24,6 +24,7 @@ def calibration():
         ret, corners = cv.findChessboardCorners(gray, (7,10), None)
         # If found, add object points, image points (after refining them)
         if ret == True:
+            print("YEs")
             objpoints.append(objp)
             corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
             imgpoints.append(corners)
@@ -32,6 +33,7 @@ def calibration():
             img_resized = cv.resize(img, (1400, 700))    
             cv.imshow('img', img_resized)
             cv.waitKey(10)
+
     cv.destroyAllWindows()
 
     ret, K, dist, rvecs, tvecs, std_int, std_ext, pVE = \
@@ -158,7 +160,7 @@ if __name__ == "__main__":
     K = np.load('mtx.csv.npy')
     dist = np.load('dist.csv.npy')
     stdInt = np.load('stdInt.csv.npy')
-    img = cv.imread('../calibration_photos/IMG_3896.JPEG')
+    img = cv.imread('../calibration_photos2/IMG_3931.JPEG')
 
     # print(stdInt)
     # print(dist)
