@@ -189,6 +189,7 @@ def do_stuff():
     T4 = decompose_E(E)
     T, X = choose_pose(T4, xy1, xy2) 
 
+    E, inliers = estimate_E_ransac(xy1, xy2, K)
 
     #Least squares bundle adjustment
     R0 = T[:3,:3]
@@ -209,7 +210,7 @@ def do_stuff():
     T_opt = pose(p_opt[:3], p_opt[3:6], R0)
     X_opt = np.hstack((np.reshape(p_opt[6:], (n_points, 3)), np.ones((n_points,1)))).T
 
-    np.savetxt('3D_points', X_opt)
+    np.savetxt('3D_points.txt', X_opt)
 
     #Plotting results
     img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.

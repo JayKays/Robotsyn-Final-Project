@@ -15,7 +15,7 @@ def calibration():
     imgpoints = [] # 2d points in image plane.
     images = glob.glob('../calibration_photos2/*.JPEG') # IMG_3896 to IMG_3914
 
-    images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
+    #images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
 
     for fname in images:
         img = cv.imread(fname)
@@ -61,6 +61,8 @@ def calibration():
 
     fig2 = plt.figure(2)
     plt.scatter(error_vecs[:,0], error_vecs[:,1])
+    plt.ylabel("y error")
+    plt.xlabel("x error")
     plt.show()
 
     # _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
@@ -81,10 +83,10 @@ def calibration():
     print('p2: %g +/- %g' % (dist[0,3], std_int[7]))
     print('k3: %g +/- %g' % (dist[0,4], std_int[8]))
 
-    np.save('mtx.csv', K)
-    np.save('dist.csv', dist)
-    np.save('stdInt.csv', std_int)
-    np.save('stdExt.csv', std_ext)
+    np.savetxt('cam_matrix.txt', K)
+    np.savetxt('dist.txt', dist)
+    np.savetxt('stdInt.txt', std_int)
+    np.savetxt('stdExt.txt', std_ext)
 
 def undistort(K, dist,stdInt):
     img = cv.imread('../calibration_photos/IMG_3896.JPEG')
@@ -98,7 +100,8 @@ def undistort(K, dist,stdInt):
 
     h, w = img.shape[:2]
 
-    newcameramtx, roi = cv.getOptimalNewCameraMatrix(K, dist, (w,h), 1, (w,h))
+    #Undistort
+    undistorted = cv.undistort(img, K, dist, None, newK)
 
     dist[4:9] = dist[4:9] + stdInt[4:9].T
 
@@ -157,10 +160,10 @@ def undistort_img(img, K, distortion, dist_std, random_dist = False):
 if __name__ == "__main__":
 
     # calibration()
-    K = np.load('mtx.csv.npy')
-    dist = np.load('dist.csv.npy')
-    stdInt = np.load('stdInt.csv.npy')
-    img = cv.imread('../calibration_photos2/IMG_3931.JPEG')
+    K = np.loadtxt('cam_matrix.txt')
+    dist = np.loadtxt('dist.txt')
+    stdInt = np.loadtxt('stdInt.txt')
+    img = cv.imread('../calibration_photos/IMG_3896.JPEG')
 
     # print(stdInt)
     # print(dist)
@@ -170,4 +173,4 @@ if __name__ == "__main__":
     cv.waitKey(-1)
 
     for i in range(10):
-        undistort_img(img, K, dist[0,:], stdInt.T[0,5:10], random_dist=True)
+        undistort_img(img, K, dist[:], stdInt.T[5:10], random_dist=True)
