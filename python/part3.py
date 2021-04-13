@@ -73,7 +73,6 @@ def localize(query_image, des_model, kp_model, threshold = 0.75):
     
     K = np.loadtxt("cam_matrix.txt")
     final_matches = np.array(final_matches)
-    print(final_matches.shape)
 
     T, X, uv1, uv2 = calculate_pose_points(K, final_matches)
     _, rvec, tvec, inliers = cv.solvePnPRansac(X.T[:,:3], uv2.T[:,:2], K, np.zeros(4))
@@ -124,9 +123,6 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
 
-    np.savetxt("uv1.txt", uv1)
-    np.savetxt("uv2.txt", uv2)
-
     draw_params = dict(matchColor = (0,255,0),
                     singlePointColor = (255,0,0),
                     matchesMask = matchesMask,
@@ -138,7 +134,7 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     return des_model, kp_model
 
 def visualize(I):
-    """ returns everything needed for plotting"""
+    """ saves everything needed for plotting in ./part3_data"""
     img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
     img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
 
@@ -147,8 +143,12 @@ def visualize(I):
     T = np.eye(4)
     T[:3,:3] = R
     T[:3,-1] = tvec[:,0]
+    np.savetxt("./part3_data/X.txt", X)
+    np.savetxt("./part3_data/T.txt", T)
+    np.savetxt("./part3_data/inliers.txt", inliers)
+    np.savetxt("./part3_data/uv2.txt", uv2)
 
-    return X, T, inliers, uv2
+    # return X, T, inliers, uv2
 
 if __name__ == "__main__":
     img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
