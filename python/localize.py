@@ -39,46 +39,9 @@ def calculate_pose_points(K, matches):
     E = estimate_E(xy1, xy2)
     poses = decompose_E(E)
 
-    T, X = choose_pose(poses, xy1, xy2)
-    return T, X, uv1, uv2
+    _, X = choose_pose(poses, xy1, xy2)
+    return X, uv2
 
-def localize(query_image, des_model, kp_model, threshold = 0.75):
-    # Initiate SIFT detector
-    sift = cv.SIFT_create()
-    # find the keypoints and descriptors with SIFT
-    kp_query, des_query = sift.detectAndCompute(query_image, None)
-
-    # FLANN parameters
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks=50)   # or pass empty dictionary
-    flann = cv.FlannBasedMatcher(index_params,search_params)
-    matches = flann.knnMatch(des_model,des_query,k=2)
-
-    # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
-    good = []
-
-    # ratio test as per Lowe's paper
-    for i,(m,n) in enumerate(matches):
-        if m.distance < threshold*n.distance:
-            matchesMask[i]=[1,0]
-            good.append(m)
-    
-    final_matches = []
-    for match in good:
-        p1 = kp_model[match.queryIdx].pt
-        p2 = kp_query[match.trainIdx].pt
-        final_matches.append([p1[0],p1[1],p2[0],p2[1]])
-    
-    K = np.loadtxt("cam_matrix.txt")
-    final_matches = np.array(final_matches)
-
-    T, X, uv1, uv2 = calculate_pose_points(K, final_matches)
-    _, rvec, tvec, inliers = cv.solvePnPRansac(X.T[:,:3], uv2.T[:,:2], K, np.zeros(4))
-    R,_ = cv.Rodrigues(rvec)
-
-    return R, tvec, X, inliers, uv2
 
 def FLANN_matching(img1, img2, threshold = 0.75):
     # Initiate SIFT detector
@@ -120,9 +83,6 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     p1 = np.array([kp1[m.queryIdx].pt for m in good])
     p2 = np.array([kp2[m.trainIdx].pt for m in good])
 
-    uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
-    uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
-
     draw_params = dict(matchColor = (0,255,0),
                     singlePointColor = (255,0,0),
                     matchesMask = matchesMask,
@@ -133,26 +93,51 @@ def FLANN_matching(img1, img2, threshold = 0.75):
 
     return des_model, kp_model
 
-def visualize(I):
-    """ saves everything needed for plotting in ./part3_data"""
+def localize(query_image, threshold = 0.75):
     img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
     img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
-
     des_model, kp_model = FLANN_matching(img1, img2)
-    R, tvec, X, inliers, uv2 = localize(I, des_model, kp_model)
+
+    # Initiate SIFT detector
+    sift = cv.SIFT_create()
+    # find the keypoints and descriptors with SIFT
+    kp_query, des_query = sift.detectAndCompute(query_image, None)
+
+    # FLANN parameters
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks=50)   # or pass empty dictionary
+    flann = cv.FlannBasedMatcher(index_params,search_params)
+    matches = flann.knnMatch(des_model,des_query,k=2)
+
+    # Need to draw only good matches, so create a mask
+    matchesMask = [[0,0] for i in range(len(matches))]
+    good = []
+
+    # ratio test as per Lowe's paper
+    for i,(m,n) in enumerate(matches):
+        if m.distance < threshold*n.distance:
+            matchesMask[i]=[1,0]
+            good.append(m)
+    
+    final_matches = []
+    for match in good:
+        p2 = kp_model[match.queryIdx].pt
+        p1 = kp_query[match.trainIdx].pt
+        final_matches.append([p1[0],p1[1],p2[0],p2[1]])
+    
+    K = np.loadtxt("../hw5_data_ext/K.txt")
+    final_matches = np.array(final_matches)
+
+    X, uv2 = calculate_pose_points(K, final_matches)
+    _, rvec, tvec, inliers = cv.solvePnPRansac(X[:3,:].T, uv2[:2,:].T, K, np.zeros(4))
+    R,_ = cv.Rodrigues(rvec)
+    
     T = np.eye(4)
     T[:3,:3] = R
     T[:3,-1] = tvec[:,0]
+
     np.savetxt("./part3_data/X.txt", X)
     np.savetxt("./part3_data/T.txt", T)
     np.savetxt("./part3_data/inliers.txt", inliers)
     np.savetxt("./part3_data/uv2.txt", uv2)
-
-    # return X, T, inliers, uv2
-
-if __name__ == "__main__":
-    img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
-    img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
-    img3 = cv.imread("../hw5_data_ext/IMG_8229.jpg", cv.IMREAD_GRAYSCALE)
-    des_model, kp_model = FLANN_matching(img1, img2)
-    R, tvec, X, inliers, uv2 = localize(img3, des_model, kp_model)

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from util import *
-from part3 import *
+from localize import *
 
 # This script uses example data. You will have to modify the
 # loading code below to suit how you structure your data.
@@ -16,8 +16,13 @@ inliers = np.loadtxt(f'{query}_inliers.txt') # Indices of inlier matches (see us
 u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 I       = plt.imread(f'{query}.jpg')         # Query image.
 
-K = np.loadtxt("cam_matrix.txt")
-X_new, T_new, inliers_new, u_new = visualize(I)
+I = cv.imread("../hw5_data_ext/IMG_8210.jpg")
+localize(I)
+inliers = np.loadtxt("./part3_data/inliers.txt")
+T_m2q = np.loadtxt("./part3_data/T.txt")
+u = np.loadtxt("./part3_data/uv2.txt")
+u = u[:2,:]
+X = np.loadtxt("./part3_data/X.txt")
 
 assert X.shape[0] == 4
 assert u.shape[0] == 2
@@ -44,20 +49,20 @@ lookat2   = np.array((0,0,10))
 # first column is the index of the 2D point in the
 # query image and the second column is the index of
 # its matched 3D point.
-assert matches.shape[1] == 2
-u_matches = u[:,matches[:,0]]
-X_matches = X[:,matches[:,1]]
+# assert matches.shape[1] == 2 # not neccessary with our implementation
+# u_matches = u[:,matches[:,0]]
+# X_matches = X[:,matches[:,1]]
 
 # 'inliers' is assumed to be a 1D array of indices
 # of the good matches, e.g. as identified by your
 # PnP+RANSAC strategy.
-u_inliers = u_matches[:,inliers]
-X_inliers = X_matches[:,inliers]
+# u_inliers = u_matches[:,inliers] # not neccessary with out implementation
+# X_inliers = X_matches[:,inliers]
 
-u_inliers = u_new[:,inliers_new]
-X_inliers = X_new[:,inliers_new]
+u_inliers = u[:,inliers]
+X_inliers = X[:,inliers]
 
-u_hat = project(K, T_m2q@X_inliers)
+u_hat = project(K, T_m2q @ X_inliers)
 e = np.linalg.norm(u_hat - u_inliers, axis=0)
 
 fig = plt.figure(figsize=(10,8))
@@ -84,3 +89,5 @@ plt.title('Model and localized pose (side view)')
 
 plt.tight_layout()
 plt.show()
+
+
