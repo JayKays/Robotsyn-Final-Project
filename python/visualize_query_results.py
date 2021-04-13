@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from util import *
+from part3 import *
 
 # This script uses example data. You will have to modify the
 # loading code below to suit how you structure your data.
@@ -14,6 +15,9 @@ matches = np.loadtxt(f'{query}_matches.txt') # Initial 2D-3D matches (see usage 
 inliers = np.loadtxt(f'{query}_inliers.txt') # Indices of inlier matches (see usage code below).
 u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 I       = plt.imread(f'{query}.jpg')         # Query image.
+
+K = np.loadtxt("cam_matrix.txt")
+X_new, T_new, inliers_new, u_new = visualize(I)
 
 assert X.shape[0] == 4
 assert u.shape[0] == 2
@@ -49,6 +53,9 @@ X_matches = X[:,matches[:,1]]
 # PnP+RANSAC strategy.
 u_inliers = u_matches[:,inliers]
 X_inliers = X_matches[:,inliers]
+
+u_inliers = u_new[:,inliers_new]
+X_inliers = X_new[:,inliers_new]
 
 u_hat = project(K, T_m2q@X_inliers)
 e = np.linalg.norm(u_hat - u_inliers, axis=0)
