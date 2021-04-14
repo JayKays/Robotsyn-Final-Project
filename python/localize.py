@@ -4,140 +4,100 @@ from cv2 import cv2 as cv
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
 from HW5 import *
+from part2 import *
 
-def choose_pose(poses, xy1, xy2):
-    best_num_visible = 0
-    for i, T in enumerate(poses):
-        P1 = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
-        P2 = T[:3,:]
-        X1 = triangulate_many(xy1, xy2, P1, P2)
-        X2 = T@X1
-        num_visible = np.sum((X1[2,:] > 0) & (X2[2,:] > 0))
-        if num_visible > best_num_visible:
-            best_num_visible = num_visible
-            best_T = T
-            best_X1 = X1
-    return best_T, best_X1
+# def choose_pose(poses, xy1, xy2):
+#     best_num_visible = 0
+#     for i, T in enumerate(poses):
+#         P1 = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
+#         P2 = T[:3,:]
+#         X1 = triangulate_many(xy1, xy2, P1, P2)
+#         X2 = T@X1
+#         num_visible = np.sum((X1[2,:] > 0) & (X2[2,:] > 0))
+#         if num_visible > best_num_visible:
+#             best_num_visible = num_visible
+#             best_T = T
+#             best_X1 = X1
+#     return best_T, best_X1
 
-def calculate_pose_points(K, matches):
-    uv1 = np.vstack([matches[:,:2].T, np.ones(matches.shape[0])])
-    uv2 = np.vstack([matches[:,2:4].T, np.ones(matches.shape[0])])
-    xy1 = np.linalg.inv(K) @ uv1
-    xy2 = np.linalg.inv(K) @ uv2
+def match_image_to_model(X, model_des, img, threshold = 0.75):
 
-    confidence = 0.99
-    inlier_fraction = 0.50
-    distance_threshold = 4.0
-    num_trials = get_num_ransac_trials(8, confidence, inlier_fraction)
-    print('Running RANSAC: %d trials, %g pixel threshold' % (num_trials, distance_threshold))
-    E,inliers = estimate_E_ransac(xy1, xy2, K, distance_threshold, num_trials)
-    uv1 = uv1[:,inliers]
-    uv2 = uv2[:,inliers]
-    xy1 = xy1[:,inliers]
-    xy2 = xy2[:,inliers]
-
-    E = estimate_E(xy1, xy2)
-    poses = decompose_E(E)
-
-    _, X = choose_pose(poses, xy1, xy2)
-    return X, uv2
-
-
-def FLANN_matching(img1, img2, threshold = 0.75):
-    # Initiate SIFT detector
     sift = cv.SIFT_create()
-    # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(img1, None)
-    kp2, des2 = sift.detectAndCompute(img2, None)
+    kp_query, query_des = sift.detectAndCompute(img, None)
 
     # FLANN parameters
     FLANN_INDEX_KDTREE = 1
     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
     search_params = dict(checks=50)   # or pass empty dictionary
     flann = cv.FlannBasedMatcher(index_params,search_params)
-    matches = flann.knnMatch(des1,des2,k=2)
+    matches = flann.knnMatch(model_des, query_des , k=2)
 
     # Need to draw only good matches, so create a mask
     matchesMask = [[0,0] for i in range(len(matches))]
     good = []
 
     # ratio test as per Lowe's paper
+    matched_idx = [False]*X.shape[1]
     for i,(m,n) in enumerate(matches):
         if m.distance < threshold*n.distance:
             matchesMask[i]=[1,0]
             good.append(m)
-    
-    final_matches = []
-    match_indexes = np.zeros(len(kp1), dtype = bool)
-    for match in good:
-        p1 = kp1[match.queryIdx].pt
-        p2 = kp2[match.trainIdx].pt
-        final_matches.append([p1[0],p1[1],p2[0],p2[1]])
-        match_indexes[match.queryIdx] = True
-    
-    des_model = np.array(des1)[match_indexes]
-    kp_model = np.array(kp1)[match_indexes]
+            matched_idx[i] = True
     
     print(f"Found {len(good)} matches with distance threshold = {threshold}")
 
-    p1 = np.array([kp1[m.queryIdx].pt for m in good])
-    p2 = np.array([kp2[m.trainIdx].pt for m in good])
+    matched_2D_points = np.array([kp_query[m.trainIdx].pt for m in good])
+    matched_3D_points = X[:,matched_idx]
 
-    draw_params = dict(matchColor = (0,255,0),
-                    singlePointColor = (255,0,0),
-                    matchesMask = matchesMask,
-                    flags = cv.DrawMatchesFlags_DEFAULT)
+    return matched_2D_points, matched_3D_points
 
-    img3 = cv.drawMatchesKnn(img1,kp1,img2,kp2,matches,None,**draw_params)
-    plt.imshow(img3,),plt.show()
-
-    return des_model, kp_model
-
-def localize(query_image, threshold = 0.75):
-    img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
-    img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
-    des_model, kp_model = FLANN_matching(img1, img2)
-
-    # Initiate SIFT detector
-    sift = cv.SIFT_create()
-    # find the keypoints and descriptors with SIFT
-    kp_query, des_query = sift.detectAndCompute(query_image, None)
-
-    # FLANN parameters
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks=50)   # or pass empty dictionary
-    flann = cv.FlannBasedMatcher(index_params,search_params)
-    matches = flann.knnMatch(des_model,des_query,k=2)
-
-    # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
-    good = []
-
-    # ratio test as per Lowe's paper
-    for i,(m,n) in enumerate(matches):
-        if m.distance < threshold*n.distance:
-            matchesMask[i]=[1,0]
-            good.append(m)
+def refine_pose(rvec, tvec, X, uv, K):
     
-    final_matches = []
-    for match in good:
-        p2 = kp_model[match.queryIdx].pt
-        p1 = kp_query[match.trainIdx].pt
-        final_matches.append([p1[0],p1[1],p2[0],p2[1]])
-    
-    K = np.loadtxt("../hw5_data_ext/K.txt")
-    final_matches = np.array(final_matches)
+    p0 = np.hstack((rvec.T[0], tvec.T[0]))
 
-    X, uv2 = calculate_pose_points(K, final_matches)
-    _, rvec, tvec, inliers = cv.solvePnPRansac(X[:3,:].T, uv2[:2,:].T, K, np.zeros(4))
+    res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)
+
+    res = least_squares(res_fun, p0, verbose=2)
+    p_opt = res['x']
+    T = pose(p_opt[:3], p_opt[3:])
+
+    return T
+
+def pose(rvec,tvec):
     R,_ = cv.Rodrigues(rvec)
-    
     T = np.eye(4)
     T[:3,:3] = R
-    T[:3,-1] = tvec[:,0]
+    T[:3,-1] = tvec
 
-    np.savetxt("./part3_data/X.txt", X)
-    np.savetxt("./part3_data/T.txt", T)
-    np.savetxt("./part3_data/inliers.txt", inliers)
-    np.savetxt("./part3_data/uv2.txt", uv2)
+    return T
+
+def estimate_pose(img_points, world_points, K, refine = True):
+
+    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4))
+    T = pose(rvec,tvec.T[0])
+    if refine:
+        T = refine_pose(rvec, tvec, world_points, img_points, K)
+    return T
+
+def localize(query_img, X, model_des, K, refined = True):
+
+    img_points, world_points = match_image_to_model(X, model_des, query_img)
+
+    np.savetxt("../part3_matched_points/3D.txt", world_points)
+    np.savetxt("../part3_matched_points/2D.txt", img_points.T)
+    T = estimate_pose(img_points.T, world_points, K, refined)
+
+    return T
+
+if __name__ == "__main__":
+    X = np.loadtxt("../3D_model/3D_points.txt")
+    model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
+    query_img = cv.imread("../hw5_data_ext/IMG_8220.jpg")
+    K = np.loadtxt("../hw5_data_ext/K.txt")
+
+    # img_points, world_points = match_image_to_model(X, model_des, query_img)
+    # T = localize(img_points.T, world_points, K)
+    T = localize(query_img, X, model_des)
+
+    print(T)
+    

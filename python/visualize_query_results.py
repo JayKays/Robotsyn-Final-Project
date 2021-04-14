@@ -16,13 +16,17 @@ inliers = np.loadtxt(f'{query}_inliers.txt') # Indices of inlier matches (see us
 u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 I       = plt.imread(f'{query}.jpg')         # Query image.
 
-I = cv.imread("../hw5_data_ext/IMG_8210.jpg")
-localize(I)
-inliers = np.loadtxt("./part3_data/inliers.txt")
-T_m2q = np.loadtxt("./part3_data/T.txt")
-u = np.loadtxt("./part3_data/uv2.txt")
-u = u[:2,:]
-X = np.loadtxt("./part3_data/X.txt")
+
+model_points = np.loadtxt("../3D_model/3D_points.txt")
+model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
+
+I = cv.imread("../hw5_data_ext/IMG_8228.jpg")
+K = np.loadtxt("../hw5_data_ext/K.txt")
+
+T_m2q = localize(I, model_points, model_des, K, refined = False)
+
+X = np.loadtxt("../part3_matched_points/3D.txt")
+u = np.loadtxt("../part3_matched_points/2D.txt")
 
 assert X.shape[0] == 4
 assert u.shape[0] == 2
@@ -59,8 +63,8 @@ lookat2   = np.array((0,0,10))
 # u_inliers = u_matches[:,inliers] # not neccessary with out implementation
 # X_inliers = X_matches[:,inliers]
 
-u_inliers = u[:,inliers]
-X_inliers = X[:,inliers]
+u_inliers = u
+X_inliers = X
 
 u_hat = project(K, T_m2q @ X_inliers)
 e = np.linalg.norm(u_hat - u_inliers, axis=0)

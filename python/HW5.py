@@ -35,8 +35,6 @@ def decompose_E(E):
     t1, t2 = U[:,2], -U[:,2]
     return [SE3(R1,t1), SE3(R1,t2), SE3(R2, t1), SE3(R2, t2)]
 
-def get_num_ransac_trials(sample_size, confidence, inlier_fraction):
-    return int(np.log(1 - confidence)/np.log(1 - inlier_fraction**sample_size))
 
 def estimate_E(xy1, xy2):
     n = xy1.shape[1]
@@ -49,7 +47,10 @@ def estimate_E(xy1, xy2):
     _,_,VT = np.linalg.svd(A)
     return np.reshape(VT[-1,:], (3,3))
 
-def estimate_E_ransac(xy1, xy2, K, distance_threshold = 4, num_trials = 20000):
+def get_num_ransac_trials(sample_size = 8, confidence = 0.99, inlier_fraction = 0.5):
+    return int(np.log(1 - confidence)/np.log(1 - inlier_fraction**sample_size))
+
+def estimate_E_ransac(xy1, xy2, K, distance_threshold = 4, num_trials = get_num_ransac_trials()):
 
     # Tip: The following snippet extracts a random subset of 8
     # correspondences (w/o replacement) and estimates E using them.
