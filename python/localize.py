@@ -74,18 +74,24 @@ def pose(rvec,tvec):
 def estimate_pose(img_points, world_points, K, refine = True):
 
     _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4))
+    
+    world_points = world_points[:,inliers[:,0]]
+    img_points = img_points[:,inliers[:,0]]
+
     T = pose(rvec,tvec.T[0])
     if refine:
         T = refine_pose(rvec, tvec, world_points, img_points, K)
-    return T
+
+
+    return T, world_points, img_points
 
 def localize(query_img, X, model_des, K, refined = True):
 
     img_points, world_points = match_image_to_model(X, model_des, query_img)
+    T , world_points, img_points = estimate_pose(img_points.T, world_points, K, refined)
 
     np.savetxt("../part3_matched_points/3D.txt", world_points)
-    np.savetxt("../part3_matched_points/2D.txt", img_points.T)
-    T = estimate_pose(img_points.T, world_points, K, refined)
+    np.savetxt("../part3_matched_points/2D.txt", img_points)
 
     return T
 
@@ -97,7 +103,7 @@ if __name__ == "__main__":
 
     # img_points, world_points = match_image_to_model(X, model_des, query_img)
     # T = localize(img_points.T, world_points, K)
-    T = localize(query_img, X, model_des)
+    T = localize(query_img, X, model_des, K)
 
     print(T)
     

@@ -20,10 +20,10 @@ I       = plt.imread(f'{query}.jpg')         # Query image.
 model_points = np.loadtxt("../3D_model/3D_points.txt")
 model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
 
-I = cv.imread("../hw5_data_ext/IMG_8228.jpg")
+I = cv.imread("../hw5_data_ext/IMG_8210.jpg")
 K = np.loadtxt("../hw5_data_ext/K.txt")
 
-T_m2q = localize(I, model_points, model_des, K, refined = False)
+T_m2q = localize(I, model_points, model_des, K, refined = True)
 
 X = np.loadtxt("../part3_matched_points/3D.txt")
 u = np.loadtxt("../part3_matched_points/2D.txt")
