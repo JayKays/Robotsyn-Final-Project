@@ -131,7 +131,7 @@ def generate_model(p1, p2, K, des):
     xy2 = xy2[:,inliers]
     uv1 = uv1[:,inliers]
     uv2 = uv2[:,inliers]
-
+    
     E = estimate_E(xy1, xy2)
 
     #Extracting pose from E
