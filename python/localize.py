@@ -6,20 +6,6 @@ from scipy.sparse import lil_matrix
 from HW5 import *
 from part2 import *
 
-# def choose_pose(poses, xy1, xy2):
-#     best_num_visible = 0
-#     for i, T in enumerate(poses):
-#         P1 = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
-#         P2 = T[:3,:]
-#         X1 = triangulate_many(xy1, xy2, P1, P2)
-#         X2 = T@X1
-#         num_visible = np.sum((X1[2,:] > 0) & (X2[2,:] > 0))
-#         if num_visible > best_num_visible:
-#             best_num_visible = num_visible
-#             best_T = T
-#             best_X1 = X1
-#     return best_T, best_X1
-
 def match_image_to_model(X, model_des, img, threshold = 0.75):
 
     sift = cv.SIFT_create()
@@ -105,5 +91,4 @@ if __name__ == "__main__":
     # T = localize(img_points.T, world_points, K)
     T = localize(query_img, X, model_des, K)
 
-    print(T)
-    
+    # print(T)
