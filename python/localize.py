@@ -44,7 +44,10 @@ def refine_pose(rvec, tvec, X, uv, K):
     res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)
 
     res = least_squares(res_fun, p0, verbose=2)
-    p_opt = res['x']
+    p_opt = res.x
+
+    print(np.round(pose_std(res.jac), decimals = 10))
+
     T = pose(p_opt[:3], p_opt[3:])
 
     return T
@@ -60,14 +63,13 @@ def pose(rvec,tvec):
 def estimate_pose(img_points, world_points, K, refine = True):
 
     _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4))
-    
+
     world_points = world_points[:,inliers[:,0]]
     img_points = img_points[:,inliers[:,0]]
 
     T = pose(rvec,tvec.T[0])
     if refine:
         T = refine_pose(rvec, tvec, world_points, img_points, K)
-
 
     return T, world_points, img_points
 
@@ -81,14 +83,22 @@ def localize(query_img, X, model_des, K, refined = True):
 
     return T
 
+def sig_p(Jac):
+    return np.linalg.inv(Jac.T @ np.eye(Jac.shape[0]) @ Jac)
+
+def pose_std(Jac):
+    return np.sqrt(np.diagonal(sig_p(Jac))**2)
+
+def unit_convertion(pose_std):
+    return pose_std
+
+
 if __name__ == "__main__":
     X = np.loadtxt("../3D_model/3D_points.txt")
     model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
     query_img = cv.imread("../hw5_data_ext/IMG_8220.jpg")
     K = np.loadtxt("../hw5_data_ext/K.txt")
 
-    # img_points, world_points = match_image_to_model(X, model_des, query_img)
-    # T = localize(img_points.T, world_points, K)
     T = localize(query_img, X, model_des, K)
 
     # print(T)
