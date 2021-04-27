@@ -211,9 +211,7 @@ if __name__ == "__main__":
     
     T_opt, X_opt = bundle_adjustment(T, X, uv1, uv2, K)
 
-    X_test, des_test = eliminate_outliers(X_opt, des)
-
-    # save_model(X, des)
+    save_model(X, des)
 
     # #Plotting results
     # img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.

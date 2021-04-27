@@ -51,7 +51,7 @@ if __name__ == "__main__":
     t = T[:3,-1]
 
     print(R.shape)
-
+    
     p = np.hstack((R[:,0].T,t))
 
     res_fun = lambda p: residual_image(p, K, X, uv[:2,:])
