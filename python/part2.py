@@ -160,18 +160,37 @@ def bundle_adjustment(T, X, p1, p2, K):
     # print(p0.shape)
 
     res_func = lambda p: residual(p, R0, K, uv1[:2,:], uv2[:2,:])
-
+    print(np.mean(np.sqrt(res_func(p0)**2)))
     sparsity = bundle_adjustment_sparsity(X.shape[1])
 
     res = least_squares(res_func, p0, verbose=2, jac_sparsity=sparsity, x_scale='jac')
     p_opt = res['x']
-
+    print(np.mean(np.sqrt(res_func(p_opt)**2)))
     #Extracting camera pose and 3d points from bundle adjustment
     n_points= uv1.shape[1]
     T_opt = pose(p_opt[:3], p_opt[3:6], R0)
     X_opt = np.hstack((np.reshape(p_opt[6:], (n_points, 3)), np.ones((n_points,1)))).T
 
     return T_opt, X_opt
+
+def eliminate_outliers(X, des, th = 0.1):
+    n = X.shape[1]
+    outlier = [True]*n
+    dists = np.zeros(n)
+
+    for i in range(n):
+        min_dist = np.inf
+        for j in range(i+1,n):
+            dist = np.linalg.norm(X[:,i] - X[:,j])
+            if dist < min_dist:
+                min_dist = dist
+        dists[i] = min_dist
+        # if min_dist <= th:
+        #     outlier[i] = False
+    # print(max(dists))
+    # print(min(dists))
+    return X[:,outlier], des[outlier, :]
+
 
 def plot_point_cloud(X, uv, img):
     draw_point_cloud(X, img, uv, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5])
@@ -191,14 +210,16 @@ if __name__ == "__main__":
     X, des, T, uv1, uv2 = generate_model(p1, p2, K, des)
     
     T_opt, X_opt = bundle_adjustment(T, X, uv1, uv2, K)
-    save_model(X, des)
 
+    X_test, des_test = eliminate_outliers(X_opt, des)
 
-    #Plotting results
-    img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
-    img2 = plt.imread("../hw5_data_ext/IMG_8229.jpg")/255.
-    np.random.seed(123) # Comment out to get a random selection each time
-    plot_point_cloud(X_opt, uv1, img1)
-    # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=20)
-    plt.show()
+    # save_model(X, des)
+
+    # #Plotting results
+    # img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
+    # img2 = plt.imread("../hw5_data_ext/IMG_8229.jpg")/255.
+    # np.random.seed(123) # Comment out to get a random selection each time
+    # plot_point_cloud(X_opt, uv1, img1)
+    # # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=20)
+    # plt.show()
 

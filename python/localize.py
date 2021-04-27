@@ -96,8 +96,6 @@ def localize(query_img, X, model_des, K, refined = True, weighted = False):
     np.savetxt("../part3_matched_points/3D.txt", world_points)
     np.savetxt("../part3_matched_points/2D.txt", img_points)
 
-
-
     return T, J
 
 def sig_p(Jac):
@@ -133,6 +131,7 @@ def monte_carlo_pose_cov(K_bar, sig_K, m = 500):
         res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)
         res = least_squares(res_fun, p0)
         poses[i,:]= res.x
+        
         if not (i+1)%100: print(f"Monte Carlo Iteration: {i+1}")
 
     return np.cov(poses.T)
@@ -143,6 +142,7 @@ def monte_carlo_std(K, sig_K, m = 500):
     std = np.sqrt(np.diagonal(cov))
 
     return std
+
 if __name__ == "__main__":
     X = np.loadtxt("../3D_model/3D_points.txt")
     model_des = np.loadtxt("../3D_model/descriptors").astype("float32")

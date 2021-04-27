@@ -131,13 +131,14 @@ def choose_pose(poses, xy1, xy2):
             best_X1 = X1
     return best_T, best_X1
 
+
 def draw_point_cloud(X, I1, uv1, xlim, ylim, zlim, name = '3D point cloud'):
     assert uv1.shape[1] == X.shape[1], 'If you get this error message in Task 4, it probably means that you did not extract the inliers of all the arrays (uv1,uv2,xy1,xy2) before calling draw_point_cloud.'
 
     # We take I1 and uv1 as arguments in order to assign a color to each
     # 3D point, based on its pixel coordinates in one of the images.
-    # c = I1[uv1[1,:].astype(np.int32), uv1[0,:].astype(np.int32), :]
-    c = None
+    c = I1[uv1[1,:].astype(np.int32), uv1[0,:].astype(np.int32), :]
+    # c = None
 
     # Matplotlib doesn't let you easily change the up-axis to match the
     # convention we use in the course (it assumes Z is upward). So this
