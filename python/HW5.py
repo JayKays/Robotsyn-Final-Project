@@ -117,12 +117,28 @@ def triangulate_many(xy1, xy2, P1, P2):
         X[:,i] = VT[3,:]/VT[3,3]
     return X
 
+def choose_pose(poses, xy1, xy2):
+    best_num_visible = 0
+    for i, T in enumerate(poses):
+        P1 = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
+        P2 = T[:3,:]
+        X1 = triangulate_many(xy1, xy2, P1, P2)
+        X2 = T@X1
+        num_visible = np.sum((X1[2,:] > 0) & (X2[2,:] > 0))
+        if num_visible > best_num_visible:
+            best_num_visible = num_visible
+            best_T = T
+            best_X1 = X1
+    return best_T, best_X1
+
+
 def draw_point_cloud(X, I1, uv1, xlim, ylim, zlim, name = '3D point cloud'):
     assert uv1.shape[1] == X.shape[1], 'If you get this error message in Task 4, it probably means that you did not extract the inliers of all the arrays (uv1,uv2,xy1,xy2) before calling draw_point_cloud.'
 
     # We take I1 and uv1 as arguments in order to assign a color to each
     # 3D point, based on its pixel coordinates in one of the images.
     c = I1[uv1[1,:].astype(np.int32), uv1[0,:].astype(np.int32), :]
+    # c = None
 
     # Matplotlib doesn't let you easily change the up-axis to match the
     # convention we use in the course (it assumes Z is upward). So this
