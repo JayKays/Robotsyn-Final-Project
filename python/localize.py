@@ -114,7 +114,3 @@ def pose(p):
     T[:3,-1] = tvec
 
     return T
-
-
-
-    
