@@ -4,7 +4,7 @@ import glob
 from matplotlib import pyplot as plt
 import numpy as np
 
-def calibration():
+def calibration(images):
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -13,18 +13,19 @@ def calibration():
     # Arrays to store object points and image points from all the images.
     objpoints = [] # 3d point in real world space
     imgpoints = [] # 2d points in image plane.
-    images = glob.glob('../calibration_photos2/*.JPEG') # IMG_3896 to IMG_3914
+    # images = glob.glob('../calibration_photos2/*.JPEG') # IMG_3896 to IMG_3914
 
     #images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
 
     for fname in images:
+
         img = cv.imread(fname)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         # Find the chess board corners
         ret, corners = cv.findChessboardCorners(gray, (7,10), None)
         # If found, add object points, image points (after refining them)
         if ret == True:
-            print("YEs")
+
             objpoints.append(objp)
             corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
             imgpoints.append(corners)
@@ -57,12 +58,14 @@ def calibration():
     plt.bar(img_nr, mean_error)
     plt.ylabel("mean reprojection error")
     plt.xlabel("image number")
+    plt.savefig("Calibration_errors")
     plt.show()
 
     fig2 = plt.figure(2)
     plt.scatter(error_vecs[:,0], error_vecs[:,1])
     plt.ylabel("y error")
     plt.xlabel("x error")
+    plt.savefig("Reprojection_scatter")
     plt.show()
 
     # _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
@@ -82,7 +85,7 @@ def calibration():
     print('p1: %g +/- %g' % (dist[0,2], std_int[6]))
     print('p2: %g +/- %g' % (dist[0,3], std_int[7]))
     print('k3: %g +/- %g' % (dist[0,4], std_int[8]))
-
+    
     np.savetxt('cam_matrix.txt', K)
     np.savetxt('dist.txt', dist)
     np.savetxt('stdInt.txt', std_int)
@@ -92,7 +95,7 @@ def undistort(K, dist,stdInt):
     img = cv.imread('../calibration_photos/IMG_3896.JPEG')
     img_resized = cv.resize(img, (1400, 700))
 
-    normal_dist = np.random.normal(dist[0,:], stdInt.T[0,5:10])
+    normal_dist = np.random.normal(dist, stdInt.T[5:10])
 
     cv.imshow('vanilla image', img_resized)
     cv.waitKey(10000)
@@ -107,27 +110,7 @@ def undistort(K, dist,stdInt):
 
     # undistort
     dst = cv.undistort(img, K, dist, None, newcameramtx)
-    # crop the image
-    # x, y, w, h = roi
-    # dst = dst[y:y+h, x:x+w]
-    # cv.imwrite('calibresult.png', dst)
-    # dst_resized = cv.resize(dst, (1400, 700))
-    # cv.imshow('undistorted+', dst_resized)
-    # cv.waitKey(10000)
-    # cv.destroyAllWindows()
-
-
-    # dist[4:9] = dist[4:9] - stdInt[4:9].T
-    # # undistort
-    # dst = cv.undistort(img, K, dist, None, K)
-    # # crop the image
-    # x, y, w, h = roi
-    # dst = dst[y:y+h, x:x+w]
-    # cv.imwrite('calibresult.png', dst)
-    # dst_resized = cv.resize(dst, (1400, 700))
-    # cv.imshow('undistorted-', dst_resized)
-    # cv.waitKey(10000)
-    # cv.destroyAllWindows()
+    
 
 def undistort_img(img, K, distortion, dist_std, random_dist = False):
     '''Undistorts and displays a given image'''
@@ -146,31 +129,33 @@ def undistort_img(img, K, distortion, dist_std, random_dist = False):
     #Crop
     x, y, w, h = roi
     undistorted = undistorted[y:y+h, x:x+w]
-    undist_resized = cv.resize(undistorted, (1440, 960))
+    # undist_resized = cv.resize(undistorted, (1440, 960))
 
     #Display undistorted image
-    cv.imshow('undistorted', undist_resized)
-    cv.waitKey(-1)
+    # cv.imshow('undistorted', undist_resized)
+    # cv.waitKey(-1)
 
-    cv.destroyAllWindows()
+    # cv.destroyAllWindows()
 
     return undistorted
 
 
 if __name__ == "__main__":
+    images = glob.glob('../iCloud Photos/Calib23/*.JPEG')
+    calibration(images)
 
-    # calibration()
     K = np.loadtxt('cam_matrix.txt')
     dist = np.loadtxt('dist.txt')
     stdInt = np.loadtxt('stdInt.txt')
-    img = cv.imread('../calibration_photos/IMG_3896.JPEG')
+    img = cv.imread('../iCloud Photos/Calib23/IMG_3991.JPEG')
 
     # print(stdInt)
     # print(dist)
-    # undistort(K, dist, stdInt)
-    img_resized = cv.resize(img, (1440, 960))
-    cv.imshow('Original image', img_resized)
-    cv.waitKey(-1)
 
-    for i in range(10):
-        undistort_img(img, K, dist[:], stdInt.T[5:10], random_dist=True)
+    # undistort(K, dist, stdInt)
+    # img_resized = cv.resize(img, (1440, 960))
+    # cv.imshow('Original image', img_resized)
+    # cv.waitKey(-1)
+
+    # for i in range(10):
+    #     undistort_img(img, K, dist[:], stdInt.T[5:10], random_dist=True)

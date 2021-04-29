@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     K = np.loadtxt("../hw5_data_ext/K.txt")
     X = np.loadtxt("../3D_model/3D_points.txt")
-    X[:3,:] *= 6.2
+    # X[:3,:] *= 6.2
     model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
     query_img = cv.imread("../hw5_data_ext/IMG_8224.jpg")
 
@@ -61,4 +61,4 @@ if __name__ == "__main__":
     # std2 = task33(K, X, model_des, query_img)
     # task34(K, X, model_des, query_img)
 
-    print(std1)
+    # print(std1)

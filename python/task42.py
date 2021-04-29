@@ -2,8 +2,10 @@ import numpy as np
 from cv2 import cv2 as cv
 
 from HW5 import *
+from scipy.sparse import lil_matrix
+from scipy.optimize import least_squares
 
-
+# def FLANN_matching(kp1, kp2, des1, des2, threshold = 0.75):
 def FLANN_matching(img1, img2, threshold = 0.75):
     # Initiate SIFT detector
     sift = cv.SIFT_create()
@@ -18,14 +20,11 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     flann = cv.FlannBasedMatcher(index_params,search_params)
     matches = flann.knnMatch(des1,des2,k=2)
 
-    # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
-    good = []
 
+    good = []
     # ratio test as per Lowe's paper
     for i,(m,n) in enumerate(matches):
         if m.distance < threshold*n.distance:
-            matchesMask[i]=[1,0]
             good.append(m)
     
     print(f"Found {len(good)} matches with distance threshold = {threshold}")
@@ -38,54 +37,40 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
 
-    # np.savetxt("uv1.txt", uv1)
-    # np.savetxt("uv2.txt", uv2)
-
-    draw_params = dict(matchColor = (0,255,0),
-                    singlePointColor = (255,0,0),
-                    matchesMask = matchesMask,
-                    flags = cv.DrawMatchesFlags_DEFAULT)
-
-    img3 = cv.drawMatchesKnn(img1,kp1,img2,kp2,matches,None,**draw_params)
-    # plt.imshow(img3,),plt.show()
-
     return p1, p2, des
-
-def bundle_adjustment_sparsity(n_points, n_cameras = 2):
-    m = 2*n_points * n_cameras
-    n = 6*(n_cameras-1) + n_points * 3
-    A = lil_matrix((m, n), dtype=int)
-    for i in range(n_cameras-1):
-        A[2*(i+1)*n_points:2*(i+2)*n_points, 6*i:6*(i+1)] = 1
-        
-    for s in range(n_points):
-        for i in range(n_cameras):
-            A[s*2 + i*2*n_points:(s+1)*2 + i*2*n_points, s*3 + 6*(n_cameras-1):(s+1)*3 + 6*(n_cameras-1)] = 1
-
-    return A
 
 def match_multi_images(images, K, threshold = 0.75):
     points = []
     des = []
-    poses = [np.eye(4)]
+
+    T = np.eye(4)
 
     n = len(images)
-    for i in range(1):
-        for j in range(i+1, n):
-            p1, p2, point_des = FLANN_matching(images[i], images[j])
 
-            if i == 0:
-                X, point_des, pose = model_points_from_match(p1, p2, point_des, K)
-                poses.append(pose)
-            else:
-                X, point_des, _ = model_points_from_match(p1, p2, point_des, K, pose = poses[i])
+    # sift = cv.SIFT_create()
 
-            points.append(X)
-            des.append(point_des)
+    # for i in range(n):
+    #     kp, des = sift.detectAndCompute(images[i], None)
+    #     descriptors.append(des)
+    #     key_points.append(key_points)
+
+    for i in range(1,2):
+        # p1, p2, point_des = FLANN_matching(kp[i-1], kp[i], des[i-1], des[i])
+        p1, p2, point_des = FLANN_matching(images[i-1], images[i])
+        X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
+
+        T_opt, X_opt = bundle_adjustment(pose, X, p1, p2, K)
+        
+        points.append(np.linalg.inv(T) @ X_opt)
+
+        des.append(point_des)
+
+        # T = T_opt @ T
+        T = T @ T_opt 
     
     return np.hstack([p for p in points]), np.vstack([d for d in des])
 
-def model_points_from_match(p1, p2, des, K, pose = None):
+def model_points_from_match(p1, p2, des, K):
     # print(p2.shape)
     uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
@@ -110,15 +95,81 @@ def model_points_from_match(p1, p2, des, K, pose = None):
     
     inlier_des = des[inliers, :]
 
-    if pose is not None:
-        pose_inv = pose
-        pose_inv[:3,:3] =  pose_inv[:3,:3].T
-        pose_inv[:3,-1] = (-1) * pose_inv[:3,-1]
+    return X, inlier_des, T, uv1, uv2
+
+def bundle_adjustment(T, X, p1, p2, K):
+    if p1.shape[1] == 2:
+        uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
+        uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
+    elif p1.shape[0] == 3:
+        uv1 = p1
+        uv2 = p2
+    else:
+        raise "Input points wrong dimentions"
+
+    R0 = T[:3,:3]
+    t0 = T[:3,-1]
+    p0 = np.hstack(([0,0,0], t0, np.ravel(X[:3,:].T)))
+    # print(p0.shape)
+    n_points= uv1.shape[1]
+
+    res_func = lambda p: residual(p, R0, K, uv1[:2,:], uv2[:2,:])
+    
+    sparsity = bundle_adjustment_sparsity(n_points)
+
+    res = least_squares(res_func, p0, jac_sparsity=sparsity, x_scale='jac')
+    p_opt = res['x']
+    
+    #Extracting camera pose and 3d points from bundle adjustment
+    T_opt = pose(p_opt[:3], p_opt[3:6], R0)
+    X_opt = np.hstack((np.reshape(p_opt[6:], (n_points, 3)), np.ones((n_points,1)))).T
+
+    return T_opt, X_opt
+
+def residual(p, R0, K, uv1, uv2):
+    n_points= uv1.shape[1]
+
+    X = np.hstack((np.reshape(p[6:], (n_points, 3)), np.ones((n_points,1))))
+    T = pose(p[:3], p[3:6], R0)
+
+    uv1_hat = project(K, X.T)
+    uv2_hat = project(K, T @ X.T)
+    
+    r = np.hstack((uv1_hat - uv1, uv2_hat - uv2))
+
+    return np.ravel(r.T)
+
+def bundle_adjustment_sparsity(n_points, n_cameras = 2):
+    m = 2*n_points * n_cameras
+    n = 6*(n_cameras-1) + n_points * 3
+    A = lil_matrix((m, n), dtype=int)
+    for i in range(n_cameras-1):
+        A[2*(i+1)*n_points:2*(i+2)*n_points, 6*i:6*(i+1)] = 1
         
-        X = pose_inv @ X
+    for s in range(n_points):
+        for i in range(n_cameras):
+            A[s*2 + i*2*n_points:(s+1)*2 + i*2*n_points, s*3 + 6*(n_cameras-1):(s+1)*3 + 6*(n_cameras-1)] = 1
 
-    return X, inlier_des, T
+    return A
 
+
+def pose(angles, translation, R0):
+    ''' Calculates the pose from parametrization'''
+
+    s, c = np.sin, np.cos
+
+    Rx = lambda a: np.array([[1, 0, 0], [0, c(a), s(a)], [0, -s(a), c(a)]])
+    Ry = lambda a: np.array([[c(a), 0, -s(a)], [0, 1, 0], [s(a), 0, c(a)]])
+    Rz = lambda a: np.array([[c(a), s(a), 0], [-s(a), c(a), 0], [0, 0, 1]])
+
+    R = Rx(angles[0]) @ Ry(angles[1]) @ Rz(angles[2]) @ R0
+    t = translation
+
+    T = np.eye(4)
+    T[:3,:3] = R
+    T[:3,3] = t
+
+    return T
 
 if __name__ == "__main__":
 
