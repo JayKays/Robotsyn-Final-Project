@@ -1,4 +1,3 @@
-
 from Monte_Carlo import *
 from localize import *
 from visualize_query_results import visualize_query_res
@@ -7,16 +6,17 @@ from part1 import undistort_img
 
 def task31(K, X, model_des, query_img):
 
-    p, J, world_points, img_points = localize(query_img, X, model_des, K)
+    p, J, world_points, img_points, R0 = localize(query_img, X, model_des, K)
+    T = pose(p, R0)
 
-    visualize_query_res(X, world_points, img_points, K, query_img, p)
-    # print(pose(p))
+    visualize_query_res(X, world_points, img_points, K, query_img, T)
+    # print(p)
 
     return
 
 def task32(K, X, model_des, query_img):
     
-    p, J, _, _ = localize(query_img, X, model_des, K)
+    _, J, _, _, _ = localize(query_img, X, model_des, K)
     # print(pose(p))
     std = pose_std(J)
 
@@ -24,7 +24,7 @@ def task32(K, X, model_des, query_img):
 
 def task33(K, X, model_des, query_img):
     
-    p, J, _, _ = localize(query_img, X, model_des, K, weighted = True)
+    _, J, _, _, _ = localize(query_img, X, model_des, K, weighted = True)
 
     # print(pose(p))
 
@@ -35,17 +35,23 @@ def task33(K, X, model_des, query_img):
 
 def task34(K, X, model_des, query_img):
 
-    p0, _, X, uv = localize(query_img, X, model_des, K)
+    p0, _, X, uv, R0 = localize(query_img, X, model_des, K)
 
-    std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
-    std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
-    std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
+    std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
+    std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
+    std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X, R0)
 
     print(std1)
     print(std2)
     print(std3)
 
     return
+
+def signif(x, p):
+    x = np.asarray(x)
+    x_positive = np.where(np.isfinite(x) & (x != 0), np.abs(x), 10**(p-1))
+    mags = 10 ** (p - 1 - np.floor(np.log10(x_positive)))
+    return np.round(x * mags) / mags
 
 if __name__ == "__main__":
     np.random.seed(0)
@@ -67,24 +73,24 @@ if __name__ == "__main__":
         # dist_std = np.loadtxt('stdInt.txt')
 
     # undistort_img(img, K, distortion, None)
-    # img1 = undistort_img(cv.imread('../iCloud Photos/IMG_4001.JPEG'), K ,distortion, None)
-    # img2 = undistort_img(cv.imread('../iCloud Photos/IMG_3981.JPEG'), K ,distortion, None)
-    # img3 = undistort_img(cv.imread('../iCloud Photos/IMG_4003.JPEG'), K ,distortion, None)
     img1 = cv.imread('../iCloud Photos/IMG_3982.JPEG')
     img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
     img3 = cv.imread('../iCloud Photos/IMG_4003.JPEG')
 
-    # img1 = undistort_img(img1, K, distortion, None)
-    # img2 = undistort_img(img2, K, distortion, None)
-    # img3 = undistort_img(img3, K, distortion, None)
+    # task31(K, X, model_des, img1)
+    # task31(K, X, model_des, img2)
+    # task31(K, X, model_des, img3)
 
-    task31(K, X, model_des, img1)
-    task31(K, X, model_des, img2)
-    task31(K, X, model_des, img3)
+    # std1 = task32(K, X, model_des, img1)
+    # std2 = task32(K, X, model_des, img2)
+    # std3 = task32(K, X, model_des, img3)
 
-    # std1 = task32(K, X, model_des, query_img)
-    # std2 = task33(K, X, model_des, query_img)
+    std1 = task33(K, X, model_des, img1)
+    std2 = task33(K, X, model_des, img2)
+    std3 = task33(K, X, model_des, img3)
+
     # task34(K, X, model_des, img3)
 
-    # print(std1)
-    # print(std2)
+    print(std1)
+    print(std2)
+    print(std3)
