@@ -47,7 +47,7 @@ def match_image_to_model(X, model_des, img, threshold = 0.75):
 
 def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
 
-    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4))
+    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4), reprojectionError = 2)
 
     world_points = world_points[:,inliers[:,0]]
     img_points = img_points[:,inliers[:,0]]
@@ -66,17 +66,21 @@ def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
 
 def refine_pose(p0, X, uv, K, weights = None):
 
+    R0, _ = cv.Rodrigues(p0[:3])
+
+    p0[:3] = np.zeros(3)
+    print(p0)
     if weights is None:
-        res_fun = lambda p: np.ravel(project(K, pose(p) @ X) - uv)
+        res_fun = lambda p: np.ravel(project(K, pose(p, R0) @ X) - uv)
     else:
-        res_fun = lambda p: weights @ np.ravel(project(K, pose(p) @ X) - uv)
+        res_fun = lambda p: weights @ np.ravel(project(K, pose(p, R0) @ X) - uv)
 
     res = least_squares(res_fun, p0, verbose=2)
     p_opt = res.x
     J = res.jac
 
-    if weights is not None:
-        J = np.linalg.inv(weights) @ J
+    # if weights is not None:
+    #     J = np.linalg.inv(weights) @ J
 
     return p_opt , J
 
@@ -100,15 +104,24 @@ def pose_std(Jac):
 
 def unit_convertion(pose_std):
     '''Converts radians and meters to deg and mm'''
+ 
     pose_std[:3] *= 180/np.pi
     pose_std[3:] *= 1000
+
     return pose_std
 
-def pose(p):
-    rvec = p[:3]
+def pose(p, R0):
+    # rvec = p[:3]
+
+    s, c = np.sin, np.cos
+    Rx = lambda a: np.array([[1, 0, 0], [0, c(a), s(a)], [0, -s(a), c(a)]])
+    Ry = lambda a: np.array([[c(a), 0, -s(a)], [0, 1, 0], [s(a), 0, c(a)]])
+    Rz = lambda a: np.array([[c(a), s(a), 0], [-s(a), c(a), 0], [0, 0, 1]])
+
+    R = Rx(p[0]) @ Ry(p[1]) @ Rz(p[2]) @ R0
     tvec = p[3:]
 
-    R,_ = cv.Rodrigues(rvec)
+    # R,_ = cv.Rodrigues(rvec)
     T = np.eye(4)
     T[:3,:3] = R
     T[:3,-1] = tvec

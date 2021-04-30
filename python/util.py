@@ -53,6 +53,9 @@ def draw_model_and_query_pose(X, T_m2q, K,
      frame_size: The length (in model units) of the camera and coordinate frame axes.
               c: Color associated with each point in X [shape Nx3].
     """
+    uv = project(K, X)
+    I = plt.imread('../iCloud Photos/IMG_3980.JPEG')/255.
+    c = I[uv[1,:].astype(np.int32), uv[0,:].astype(np.int32), :]
 
     assert X.ndim == 2, 'X must be a (3 or 4)xN array'
     assert X.shape[1] > 0, 'X must have at least one point'

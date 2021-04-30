@@ -184,7 +184,7 @@ def save_model(X, des, path):
     np.savetxt(Path.joinpath(path,'3D_points.txt'), X)
     np.savetxt(Path.joinpath(path,'descriptors'), np.array(des))
 
-if __name__ == "__main__":
+def main():
     np.random.seed(0)
 
     hw5_model = False
@@ -199,8 +199,8 @@ if __name__ == "__main__":
         X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
         
         T, X = bundle_adjustment(T, X, uv1, uv2, K)
-
-        # save_model(X, des, Path('../HW5_3D_model'))
+        X[:3]*= 5
+        save_model(X, des, Path('../HW5_3D_model'))
 
         #Plotting results
         img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
@@ -217,10 +217,10 @@ if __name__ == "__main__":
         stdInt = np.loadtxt('stdInt.txt')
 
         img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
-        img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
+        img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
 
-        img1 = undistort_img(img1, K, dist, stdInt)
-        img2 = undistort_img(img2, K, dist, stdInt)
+        # img1 = undistort_img(img1, K, dist, stdInt)
+        # img2 = undistort_img(img2, K, dist, stdInt)
 
         p1, p2, des = FLANN_matching(img1, img2)
 
@@ -228,17 +228,36 @@ if __name__ == "__main__":
         
         T, X = bundle_adjustment(T, X, uv1, uv2, K)
 
+        #Scaling to meters
+        X[:3,:] *= 5.7
+
         save_model(X, des, Path('../3D_model'))
     
 
         #Plotting results
         img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
-        img2 = plt.imread("../iCloud Photos/IMG_3983.JPEG")/255.
+        img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
         # img1 = img1/255.
         # img2 = img2/255.
         # np.random.seed(123) # Comment out to get a random selection each time
-        draw_point_cloud(X, img1, uv1, xlim=[-6,+6], ylim=[-6,+6], zlim=[4, 15], find_colors=True)
+        draw_point_cloud(X, img1, uv1, xlim=[-6,+6], ylim=[-6,+6], zlim=[3, 15], find_colors=True)
 
         draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
         plt.show()
 
+
+
+if __name__ == "__main__":
+
+    # K = np.loadtxt("cam_matrix.txt")
+    # spars = bundle_adjustment_sparsity(3)
+
+    # res_func = lambda p: residual(p, np.eye(3), K, np.ones((2,3)), 2*np.ones((2,3)))
+
+    # test = jacobian(res_func, np.ones(6+9), eps = 1e-5).astype(bool).astype(int)
+
+    # # plt.imshow(spars.toarray())
+    # plt.imshow(test)
+    # plt.show()
+
+    main()

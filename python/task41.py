@@ -21,7 +21,7 @@ def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, uv, X, m = 500):
         res = least_squares(res_fun, p0)
         poses[i,:]= res.x
 
-        if not (i+1)%5: print(f"Monte Carlo Iteration: {i+1}")
+        if not (i+1)%100: print(f"Monte Carlo Iteration: {i+1}")
 
     return np.cov(poses.T)
 
@@ -57,37 +57,47 @@ def residual(p, X, uv, K, sig_K):
     std_u = sig_cx**2 + (X_hat[0,:] / X_hat[2,:])**2 * sig_f**2
     std_v = sig_cy**2 + (X_hat[1,:] / X_hat[2,:])**2 * sig_f**2
 
-    sig_r = np.diag(np.sqrt(np.hstack((1/std_u, 1/std_v))))
+    sig_r = np.sqrt(np.hstack((1/std_u, 1/std_v)))
 
-    res = sig_r @ np.ravel(uv_hat - uv)
+    res = sig_r * np.ravel(uv_hat - uv)
 
     return res
 
 if __name__ == "__main__":
     np.random.seed(0)
 
-    K = np.loadtxt("../hw5_data_ext/K.txt")
-    X = np.loadtxt("../HW5_3D_model/3D_points.txt")
-    model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
-    query_img = cv.imread("../hw5_data_ext/IMG_8207.jpg")
-    X[:3,:] *= 6.2
+    # K = np.loadtxt("../hw5_data_ext/K.txt")
+    # X = np.loadtxt("../HW5_3D_model/3D_points.txt")
+    # model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
+    # query_img = cv.imread("../hw5_data_ext/IMG_8207.jpg")
+    # # X[:3,:] *= 6.2
+    K = np.loadtxt("cam_matrix.txt")
+    X = np.loadtxt("../3D_model/3D_points.txt")
+    model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
+    distortion = np.loadtxt('dist.txt')
+    query_img = cv.imread('../iCloud Photos/IMG_3982.JPEG')
+    # dist_std = np.loadtxt('stdInt.txt')
 
     p0, _, X, uv = localize(query_img, X, model_des, K)
     
-    # std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
-    # std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
-    # std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
+    std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
+    std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
+    std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
 
-    # std1_w = weighted_monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
-    # std2_w = weighted_monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
-    # std3_w = weighted_monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
+    std1_w = weighted_monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
+    std2_w = weighted_monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
+    std3_w = weighted_monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
 
     # print('[4.38717090e-05 4.81921459e-05 5.07619846e-06 4.75064375e-05 5.59353675e-05 3.81880963e-02]')
     # print('[0.00050253 0.00226796 0.00056173 0.005338   0.00272789 0.03975035]')
-    print(np.round(pose(p0), decimals = 5))
-    # print(np.round(std1, decimals = 6))
-    # print(np.round(std2, decimals = 6))
-    # print(np.round(std3, decimals = 6))
+    # print(np.round(pose(p0), decimals = 5))
+    print(np.round(std1, decimals = 6))
+    print(np.round(std2, decimals = 6))
+    print(np.round(std3, decimals = 6))
+    print('-'*60)
+    print(np.round(std1_w, decimals = 6))
+    print(np.round(std2_w, decimals = 6))
+    print(np.round(std3_w, decimals = 6))
 
 
 
