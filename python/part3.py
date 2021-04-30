@@ -9,7 +9,7 @@ def task31(K, X, model_des, query_img):
 
     p, J, world_points, img_points = localize(query_img, X, model_des, K)
 
-    visualize_query_res(X, world_points, img_points, K, query_img, pose(p))
+    visualize_query_res(X, world_points, img_points, K, query_img, p)
     # print(pose(p))
 
     return
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         K = np.loadtxt("../hw5_data_ext/K.txt")
         X = np.loadtxt("../HW5_3D_model/3D_points.txt")
         model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
-        query_img = cv.imread("../hw5_data_ext/IMG_8211.jpg")
+        query_img = cv.imread("../hw5_data_ext/IMG_8214.jpg")
 
     else:
         K = np.loadtxt("cam_matrix.txt")
@@ -70,22 +70,21 @@ if __name__ == "__main__":
     # img1 = undistort_img(cv.imread('../iCloud Photos/IMG_4001.JPEG'), K ,distortion, None)
     # img2 = undistort_img(cv.imread('../iCloud Photos/IMG_3981.JPEG'), K ,distortion, None)
     # img3 = undistort_img(cv.imread('../iCloud Photos/IMG_4003.JPEG'), K ,distortion, None)
-    # img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
-    # img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
-    # img3 = cv.imread('../iCloud Photos/IMG_3982.JPEG')
+    img1 = cv.imread('../iCloud Photos/IMG_3982.JPEG')
+    img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
+    img3 = cv.imread('../iCloud Photos/IMG_4003.JPEG')
 
     # img1 = undistort_img(img1, K, distortion, None)
     # img2 = undistort_img(img2, K, distortion, None)
     # img3 = undistort_img(img3, K, distortion, None)
 
+    task31(K, X, model_des, img1)
+    task31(K, X, model_des, img2)
+    task31(K, X, model_des, img3)
 
-    # task31(K, X, model_des, img1)
-    # task31(K, X, model_des, img2)
-    # task31(K, X, model_des, img3)
-
-    std1 = task32(K, X, model_des, query_img)
-    std2 = task33(K, X, model_des, query_img)
+    # std1 = task32(K, X, model_des, query_img)
+    # std2 = task33(K, X, model_des, query_img)
     # task34(K, X, model_des, img3)
 
-    print(std1)
-    print(std2)
+    # print(std1)
+    # print(std2)

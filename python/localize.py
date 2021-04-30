@@ -47,7 +47,7 @@ def match_image_to_model(X, model_des, img, threshold = 0.75):
 
 def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
 
-    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4), reprojectionError = 2)
+    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4), reprojectionError = 4)
 
     world_points = world_points[:,inliers[:,0]]
     img_points = img_points[:,inliers[:,0]]
@@ -76,7 +76,7 @@ def refine_pose(p0, X, uv, K, weights = None):
         res_fun = lambda p: weights @ np.ravel(project(K, pose(p, R0) @ X) - uv)
 
     res = least_squares(res_fun, p0, verbose=2)
-    p_opt = res.x
+    p_opt = pose(res.x, R0)
     J = res.jac
 
     # if weights is not None:

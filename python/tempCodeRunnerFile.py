@@ -1,3 +1,3 @@
-img1 = undistort_img(img1, K, distortion, None)
-    # img2 = undistort_img(img2, K, distortion, None)
-    # img3 = undistort_img(img3, K, distortion, None)
+mg1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
+    img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
+    img3 = cv.imre
