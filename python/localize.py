@@ -10,9 +10,9 @@ from part2 import *
 def localize(query_img, X, model_des, K, refined = True, weighted = False):
 
     img_points, world_points = match_image_to_model(X, model_des, query_img)
-    p , world_points, img_points, J = estimate_pose(img_points.T, world_points, K, refined, weighted)
+    p, world_points, img_points, J, R0 = estimate_pose(img_points.T, world_points, K, refined, weighted)
 
-    return p, J, world_points, img_points
+    return p, J, world_points, img_points, R0
 
 def match_image_to_model(X, model_des, img, threshold = 0.75):
 
@@ -47,7 +47,7 @@ def match_image_to_model(X, model_des, img, threshold = 0.75):
 
 def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
 
-    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4), reprojectionError = 2)
+    _, rvec, tvec, inliers = cv.solvePnPRansac(world_points[:3,:].T, img_points.T, K, np.zeros(4), reprojectionError = 3)
 
     world_points = world_points[:,inliers[:,0]]
     img_points = img_points[:,inliers[:,0]]
@@ -60,16 +60,15 @@ def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
     p = np.hstack((rvec.T[0], tvec.T[0]))
 
     if refine:
-        p, J = refine_pose(p, world_points, img_points, K, weights)
+        p, J, R0 = refine_pose(p, world_points, img_points, K, weights)
         
-    return p, world_points, img_points, J
+    return p, world_points, img_points, J, R0
 
 def refine_pose(p0, X, uv, K, weights = None):
 
     R0, _ = cv.Rodrigues(p0[:3])
-
     p0[:3] = np.zeros(3)
-    print(p0)
+
     if weights is None:
         res_fun = lambda p: np.ravel(project(K, pose(p, R0) @ X) - uv)
     else:
@@ -82,7 +81,7 @@ def refine_pose(p0, X, uv, K, weights = None):
     # if weights is not None:
     #     J = np.linalg.inv(weights) @ J
 
-    return p_opt , J
+    return p_opt, J, R0
 
 def calc_weights(n, sig_u = 50, sig_v = 0.1):
 
@@ -111,8 +110,6 @@ def unit_convertion(pose_std):
     return pose_std
 
 def pose(p, R0):
-    # rvec = p[:3]
-
     s, c = np.sin, np.cos
     Rx = lambda a: np.array([[1, 0, 0], [0, c(a), s(a)], [0, -s(a), c(a)]])
     Ry = lambda a: np.array([[c(a), 0, -s(a)], [0, 1, 0], [s(a), 0, c(a)]])
@@ -121,7 +118,6 @@ def pose(p, R0):
     R = Rx(p[0]) @ Ry(p[1]) @ Rz(p[2]) @ R0
     tvec = p[3:]
 
-    # R,_ = cv.Rodrigues(rvec)
     T = np.eye(4)
     T[:3,:3] = R
     T[:3,-1] = tvec
