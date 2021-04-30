@@ -1,4 +1,2 @@
-K = np.loadtxt('cam_matrix.txt')
-    # dist = np.loadtxt('dist.txt')
-    # stdInt = np.loadtxt('stdInt.txt')
-    # img = cv.imread('../calibration_photos/IMG_3896.JPEG')
+img1 = undistort_img(img1, K, dist, stdInt)
+        img2 = undistort_img(img2, K, dist, stdInt)

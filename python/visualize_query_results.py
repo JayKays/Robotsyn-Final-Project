@@ -16,7 +16,7 @@ from localize import *
 # u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 # I       = plt.imread(f'{query}.jpg')         # Query image.
 
-def visualize_query_res(X, u, K, I, T_m2q):
+def visualize_query_res(X, X_inliers, u, K, I, T_m2q):
     # model_points = np.loadtxt("../3D_model/3D_points.txt")
     # # model_points[:3,:] *= 6
 
@@ -54,22 +54,8 @@ def visualize_query_res(X, u, K, I, T_m2q):
     lookfrom2 = np.array((25,-5,10))
     lookat2   = np.array((0,0,10))
 
-    # 'matches' is assumed to be a Nx2 array, where the
-    # first column is the index of the 2D point in the
-    # query image and the second column is the index of
-    # its matched 3D point.
-    # assert matches.shape[1] == 2 # not neccessary with our implementation
-    # u_matches = u[:,matches[:,0]]
-    # X_matches = X[:,matches[:,1]]
-
-    # 'inliers' is assumed to be a 1D array of indices
-    # of the good matches, e.g. as identified by your
-    # PnP+RANSAC strategy.
-    # u_inliers = u_matches[:,inliers] # not neccessary with out implementation
-    # X_inliers = X_matches[:,inliers]
-
     u_inliers = u
-    X_inliers = X
+    # X_inliers = X
 
     u_hat = project(K, T_m2q @ X_inliers)
     e = np.linalg.norm(u_hat - u_inliers, axis=0)
@@ -89,11 +75,11 @@ def visualize_query_res(X, u, K, I, T_m2q):
     plt.xlabel('Reprojection error (pixels)')
 
     plt.subplot(223)
-    draw_model_and_query_pose(X, T_m2q, K, lookat1, lookfrom1, c=c)
+    draw_model_and_query_pose(X, T_m2q, K, lookat1, lookfrom1, c=None)
     plt.title('Model and localized pose (top view)')
 
     plt.subplot(224)
-    draw_model_and_query_pose(X, T_m2q, K, lookat2, lookfrom2, c=c)
+    draw_model_and_query_pose(X, T_m2q, K, lookat2, lookfrom2, c=None)
     plt.title('Model and localized pose (side view)')
 
     plt.tight_layout()

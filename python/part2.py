@@ -2,6 +2,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from cv2 import cv2 as cv
+from pathlib import Path
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
 
@@ -161,12 +162,13 @@ def bundle_adjustment(T, X, p1, p2, K):
     # print(p0.shape)
 
     res_func = lambda p: residual(p, R0, K, uv1[:2,:], uv2[:2,:])
-    print(np.mean(np.sqrt(res_func(p0)**2)))
+    print(np.mean(np.linalg.norm(np.reshape(res_func(p0), (2, 2*X.shape[1])), axis = 0)))
+
     sparsity = bundle_adjustment_sparsity(X.shape[1])
 
     res = least_squares(res_func, p0, verbose=2, jac_sparsity=sparsity, x_scale='jac')
     p_opt = res['x']
-    print(np.mean(np.sqrt(res_func(p_opt)**2)))
+    print(np.mean(np.linalg.norm(np.reshape(res_func(p_opt), (2, 2*X.shape[1])), axis = 0)))
     #Extracting camera pose and 3d points from bundle adjustment
     n_points= uv1.shape[1]
     T_opt = pose(p_opt[:3], p_opt[3:6], R0)
@@ -174,63 +176,69 @@ def bundle_adjustment(T, X, p1, p2, K):
 
     return T_opt, X_opt
 
-def eliminate_outliers(X, des, th = 0.1):
-    n = X.shape[1]
-    outlier = [True]*n
-    dists = np.zeros(n)
-
-    for i in range(n):
-        min_dist = np.inf
-        for j in range(i+1,n):
-            dist = np.linalg.norm(X[:,i] - X[:,j])
-            if dist < min_dist:
-                min_dist = dist
-        dists[i] = min_dist
-        # if min_dist <= th:
-        #     outlier[i] = False
-    # print(max(dists))
-    # print(min(dists))
-    return X[:,outlier], des[outlier, :]
-
-
-def plot_point_cloud(X, uv, img):
-    draw_point_cloud(X, img, uv, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5])
+def plot_point_cloud(X, uv, img, find_colors = False):
+    draw_point_cloud(X, img, uv, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5], find_colors=find_colors)
     # draw_point_cloud(X, img1, uv1, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5])
 
-def save_model(X, des):
-    np.savetxt("../3D_model/3D_points.txt", X)
-    np.savetxt("../3D_model/descriptors", np.array(des))
+def save_model(X, des, path):
+    np.savetxt(Path.joinpath(path,'3D_points.txt'), X)
+    np.savetxt(Path.joinpath(path,'descriptors'), np.array(des))
 
 if __name__ == "__main__":
+    np.random.seed(0)
 
-    # img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
-    # img2 = cv.imread("../hw5_data_ext/IMG_8228.jpg", cv.IMREAD_GRAYSCALE)
-    # K = np.loadtxt("../hw5_data_ext/K.txt")
+    hw5_model = False
 
-    K = np.loadtxt("cam_matrix.txt")
-    dist = np.loadtxt('dist.txt')
-    stdInt = np.loadtxt('stdInt.txt')
+    if hw5_model:
+        img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
+        img2 = cv.imread("../hw5_data_ext/IMG_8227.jpg", cv.IMREAD_GRAYSCALE)
+        K = np.loadtxt("../hw5_data_ext/K.txt")
 
+        p1, p2, des = FLANN_matching(img1, img2)
 
-    img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
-    img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
+        X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
+        
+        T, X = bundle_adjustment(T, X, uv1, uv2, K)
 
-    # img1 = undistort_img(img1, K, dist, stdInt)
-    # im2 = undistort_img(img2, K, dist, stdInt)
+        # save_model(X, des, Path('../HW5_3D_model'))
 
-    p1, p2, des = FLANN_matching(img1, img2)
+        #Plotting results
+        img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
+        img2 = plt.imread("../hw5_data_ext/IMG_8227.jpg")/255.
+        # np.random.seed(123) # Comment out to get a random selection each time
+        plot_point_cloud(X, uv1, img1, find_colors = True)
+        draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
+        plt.show()
 
-    X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
+    else:
+
+        K = np.loadtxt("cam_matrix.txt")
+        dist = np.loadtxt('dist.txt')
+        stdInt = np.loadtxt('stdInt.txt')
+
+        img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
+        img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
+
+        img1 = undistort_img(img1, K, dist, stdInt)
+        img2 = undistort_img(img2, K, dist, stdInt)
+
+        p1, p2, des = FLANN_matching(img1, img2)
+
+        X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
+        
+        T, X = bundle_adjustment(T, X, uv1, uv2, K)
+
+        save_model(X, des, Path('../3D_model'))
     
-    T, X = bundle_adjustment(T, X, uv1, uv2, K)
 
-    save_model(X, des)
+        #Plotting results
+        img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
+        img2 = plt.imread("../iCloud Photos/IMG_3983.JPEG")/255.
+        # img1 = img1/255.
+        # img2 = img2/255.
+        # np.random.seed(123) # Comment out to get a random selection each time
+        draw_point_cloud(X, img1, uv1, xlim=[-6,+6], ylim=[-6,+6], zlim=[4, 15], find_colors=True)
 
-    #Plotting results
-    img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
-    img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
-    # np.random.seed(123) # Comment out to get a random selection each time
-    plot_point_cloud(X, uv1, img1)
-    draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
-    plt.show()
+        draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
+        plt.show()
 

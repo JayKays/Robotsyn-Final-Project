@@ -39,6 +39,33 @@ def FLANN_matching(img1, img2, threshold = 0.75):
 
     return p1, p2, des
 
+def realtive_scale(X1, X2, des1, des2, threshold = 0.75):
+
+    # FLANN parameters
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks=50)   # or pass empty dictionary
+    flann = cv.FlannBasedMatcher(index_params,search_params)
+    matches = flann.knnMatch(des1,des2,k=2)
+
+
+    good = []
+    # ratio test as per Lowe's paper
+    for i,(m,n) in enumerate(matches):
+        if m.distance < threshold*n.distance:
+            good.append(m)
+    
+    p1 = np.array([X1[:,m.queryIdx] for m in good])
+    p2 = np.array([X2[:,m.trainIdx] for m in good])
+
+    diff1 = np.linalg.norm(np.diff(p1, axis = 1), axis = 0)
+    diff2 = np.linalg.norm(np.diff(p2, axis = 1), axis = 0)
+
+    scale = np.mean(diff1 / (diff2))
+
+    return scale
+
+
 def match_multi_images(images, K, threshold = 0.75):
     points = []
     des = []
@@ -51,13 +78,26 @@ def match_multi_images(images, K, threshold = 0.75):
 
     # for i in range(n):
     #     kp, des = sift.detectAndCompute(images[i], None)
-    #     descriptors.append(des)
-    #     key_points.append(key_points)
 
-    for i in range(1,2):
+    #     img_des.append(des)
+
+    # print(len(img_des))
+    #Initial model from first 2 images
+    # p1, p2, point_des = FLANN_matching(images[0], images[1])
+    # X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
+
+    for i in range(1,n):
         # p1, p2, point_des = FLANN_matching(kp[i-1], kp[i], des[i-1], des[i])
         p1, p2, point_des = FLANN_matching(images[i-1], images[i])
+
         X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
+
+        # print(len(points))
+
+        if i > 1:
+            scale = realtive_scale(points[i-2], X, des[i-2], point_des)
+            pose[:3,-1] *= scale
+            X[:3,:] *= scale
 
         T_opt, X_opt = bundle_adjustment(pose, X, p1, p2, K)
         
@@ -69,6 +109,7 @@ def match_multi_images(images, K, threshold = 0.75):
         T = T @ T_opt 
     
     return np.hstack([p for p in points]), np.vstack([d for d in des])
+
 
 def model_points_from_match(p1, p2, des, K):
     # print(p2.shape)
@@ -117,7 +158,7 @@ def bundle_adjustment(T, X, p1, p2, K):
     
     sparsity = bundle_adjustment_sparsity(n_points)
 
-    res = least_squares(res_func, p0, jac_sparsity=sparsity, x_scale='jac')
+    res = least_squares(res_func, p0, ftol = 1e-3,verbose = 2, jac_sparsity=sparsity, x_scale='jac')
     p_opt = res['x']
     
     #Extracting camera pose and 3d points from bundle adjustment
@@ -173,7 +214,8 @@ def pose(angles, translation, R0):
 
 if __name__ == "__main__":
 
-    img_numbs = ['07', '28', '21', '13', '09']
+    # img_numbs = ['07', '28', '21', '13', '09']
+    img_numbs = ['07','28', '09', '10']#'11', '12', '13', '14']
 
     images = [cv.imread(f"../hw5_data_ext/IMG_82{img_numbs[i]}.jpg") for i in range(len(img_numbs))]
     K = np.loadtxt("../hw5_data_ext/K.txt")

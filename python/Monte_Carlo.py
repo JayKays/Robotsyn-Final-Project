@@ -14,14 +14,12 @@ def pose(rvec,tvec):
 
 def monte_carlo_pose_cov(K_bar, sig_K, p0, uv, X, m = 500):
 
-    p0 = np.loadtxt("../Monte_Carlo_init_params/pose.txt")
-    uv = np.loadtxt("../Monte_Carlo_init_params/uv.txt")
-    X = np.loadtxt("../Monte_Carlo_init_params/X.txt")
-
     poses = np.zeros((m,6))
 
     for i in range(m):
+
         params = np.random.normal(np.zeros(3), sig_K)
+        
         K = K_bar + np.array([[params[0], 0, params[1]], [0,params[0],params[2]],[0,0,0]])
 
         res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)

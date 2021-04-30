@@ -61,7 +61,7 @@ def estimate_pose(img_points, world_points, K, refine = True, weighted = False):
 
     if refine:
         p, J = refine_pose(p, world_points, img_points, K, weights)
-
+        
     return p, world_points, img_points, J
 
 def refine_pose(p0, X, uv, K, weights = None):
@@ -95,7 +95,7 @@ def pose_std(Jac):
     sig_p = np.linalg.inv(Jac.T @ sig_r @ Jac)
 
     std = np.sqrt(np.diagonal(sig_p))
-
+    
     return std
 
 def unit_convertion(pose_std):
@@ -114,3 +114,6 @@ def pose(p):
     T[:3,-1] = tvec
 
     return T
+
+if __name__ == "__main__":
+    calc_weights(10, 2, 1)
