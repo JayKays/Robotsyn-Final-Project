@@ -3,10 +3,10 @@ import numpy as np
 from cv2 import cv2 as cv
 from scipy.optimize import least_squares
 from HW5 import *
-from Monte_Carlo import monte_carlo_std
-from localize import localize
+from Monte_Carlo import monte_carlo_std, pose
+from localize import localize, unit_convertion
 
-def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, uv, X, m = 500):
+def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, R0, uv, X, m = 500):
 
     poses = np.zeros((m,6))
 
@@ -17,7 +17,7 @@ def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, uv, X, m = 500):
         K = K_bar + np.array([[params[0], 0, params[1]], [0,params[0],params[2]],[0,0,0]])
 
         # res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)
-        res_fun = lambda p: residual(p, X, uv, K, sig_K)
+        res_fun = lambda p: residual(p, X, uv, K, sig_K, R0)
         res = least_squares(res_fun, p0)
         poses[i,:]= res.x
 
@@ -25,24 +25,24 @@ def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, uv, X, m = 500):
 
     return np.cov(poses.T)
 
-def weighted_monte_carlo_std(K, sig_K, p0, uv, X, m = 500):
+def weighted_monte_carlo_std(K, sig_K, p0, uv, X, R0, m = 500):
 
-    cov = weighted_monte_carlo_pose_cov(K, sig_K, p0, uv, X)
+    cov = weighted_monte_carlo_pose_cov(K, sig_K, p0, R0, uv, X)
     std = np.sqrt(np.diagonal(cov))
 
     return std
 
-def pose(p):
-    rvec = p[:3]
-    tvec = p[3:]
-    R,_ = cv.Rodrigues(rvec)
-    T = np.eye(4)
-    T[:3,:3] = R
-    T[:3,-1] = tvec
+# def pose(p):
+#     rvec = p[:3]
+#     tvec = p[3:]
+#     R,_ = cv.Rodrigues(rvec)
+#     T = np.eye(4)
+#     T[:3,:3] = R
+#     T[:3,-1] = tvec
 
-    return T
+#     return T
 
-def residual(p, X, uv, K, sig_K):
+def residual(p, X, uv, K, sig_K, R0):
 
     n = X.shape[1]
 
@@ -50,10 +50,11 @@ def residual(p, X, uv, K, sig_K):
     sig_cx = sig_K[1]
     sig_cy = sig_K[2]
 
-    X_hat = pose(p) @ X
+    X_hat = pose(p, R0) @ X
 
     uv_hat = project(K, X_hat)
 
+    #Weighting the residual with std
     std_u = sig_cx**2 + (X_hat[0,:] / X_hat[2,:])**2 * sig_f**2
     std_v = sig_cy**2 + (X_hat[1,:] / X_hat[2,:])**2 * sig_f**2
 
@@ -78,26 +79,23 @@ if __name__ == "__main__":
     query_img = cv.imread('../iCloud Photos/IMG_3982.JPEG')
     # dist_std = np.loadtxt('stdInt.txt')
 
-    p0, _, X, uv = localize(query_img, X, model_des, K)
+    p0, _, X, uv, R0 = localize(query_img, X, model_des, K)
     
-    std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
-    std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
-    std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
+    std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
+    std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
+    std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X, R0)
 
-    std1_w = weighted_monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X)
-    std2_w = weighted_monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X)
-    std3_w = weighted_monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X)
+    std1_w = weighted_monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
+    std2_w = weighted_monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
+    std3_w = weighted_monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X, R0)
 
-    # print('[4.38717090e-05 4.81921459e-05 5.07619846e-06 4.75064375e-05 5.59353675e-05 3.81880963e-02]')
-    # print('[0.00050253 0.00226796 0.00056173 0.005338   0.00272789 0.03975035]')
-    # print(np.round(pose(p0), decimals = 5))
-    print(np.round(std1, decimals = 6))
-    print(np.round(std2, decimals = 6))
-    print(np.round(std3, decimals = 6))
+    print(np.round(unit_convertion(std1), decimals = 8))
+    print(np.round(unit_convertion(std2), decimals = 8))
+    print(np.round(unit_convertion(std3), decimals = 8))
     print('-'*60)
-    print(np.round(std1_w, decimals = 6))
-    print(np.round(std2_w, decimals = 6))
-    print(np.round(std3_w, decimals = 6))
+    print(np.round(unit_convertion(std1_w), decimals = 8))
+    print(np.round(unit_convertion(std2_w), decimals = 8))
+    print(np.round(unit_convertion(std3_w), decimals = 8))
 
 
 

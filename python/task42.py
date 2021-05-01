@@ -121,7 +121,6 @@ def match_multi_images(images, K, threshold = 0.75):
         des.append(point_des)
 
         T = T_opt @ T
-        # T = T @ T_opt 
     
     return np.hstack([p for p in points]), np.vstack([d for d in des])
 

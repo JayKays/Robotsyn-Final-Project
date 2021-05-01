@@ -7,7 +7,7 @@ from HW5 import *
 from part2 import *
 
 
-def localize(query_img, X, model_des, K, using_rootsift, refined = True, weighted = False):
+def localize(query_img, X, model_des, K, using_rootsift = False, refined = True, weighted = False):
 
     img_points, world_points = match_image_to_model(X, model_des, query_img, using_rootsift)
     p, world_points, img_points, J, R0 = estimate_pose(img_points.T, world_points, K, refined, weighted)
