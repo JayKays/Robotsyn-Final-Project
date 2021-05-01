@@ -32,22 +32,12 @@ def ORB_matching(img1, img2):
     matches = sorted(matches, key = lambda x:x.distance)
 
     # Need to draw only good matches, using 3000 first
-    good = []
-    for m in matches[:3000]:
-        good.append(m)
+    p1 = np.array([kp1[m.queryIdx].pt for m in matches[:3000]])
+    p2 = np.array([kp2[m.trainIdx].pt for m in matches[:3000]])
 
-    p1 = np.array([kp1[m.queryIdx].pt for m in good])
-    p2 = np.array([kp2[m.trainIdx].pt for m in good])
+    des = des1[[m.queryIdx for m in matches[:3000]], :]
 
-    des = des1[[m.queryIdx for m in good], :]
-
-    uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
-    uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
-
-    np.savetxt("uv1.txt", uv1)
-    np.savetxt("uv2.txt", uv2)
-
-    print(f"Found {len(matches)} matches. Using {len(good)} matches with shortest distance.")
+    print(f"Found {len(matches)} matches. Using {len(p1)} matches with shortest distance.")
 
     # draw first 3000 matches
     # img3 = cv.drawMatches(image1_gray, kp1, image2_gray, kp2, matches[:3000], image2_gray, flags = 2)
@@ -77,5 +67,5 @@ if __name__ == "__main__":
     # np.random.seed(123) # Comment out to get a random selection each time
     plot_point_cloud(X, uv1, img1)
     draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
-    visualize_query_res(X, X, uv2[:2,:], K, plt.imread("../iCloud Photos/IMG_3981.JPEG"), T)
+    visualize_query_res(X, X, uv2[:2,:], K, img2, T)
     plt.show()

@@ -30,14 +30,12 @@ def FLANN_matching(img1, img2, using_rootsift, threshold = 0.75):
     flann = cv.FlannBasedMatcher(index_params,search_params)
     matches = flann.knnMatch(des1,des2,k=2)
 
-    # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
+    # Need to draw only good matches
     good = []
 
     # ratio test as per Lowe's paper
     for i,(m,n) in enumerate(matches):
         if m.distance < threshold*n.distance:
-            matchesMask[i]=[1,0]
             good.append(m)
     
     print(f"Found {len(good)} matches with distance threshold = {threshold}")
@@ -46,20 +44,6 @@ def FLANN_matching(img1, img2, using_rootsift, threshold = 0.75):
     p2 = np.array([kp2[m.trainIdx].pt for m in good])
 
     des = des1[[m.queryIdx for m in good], :]
-
-    uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
-    uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
-
-    # np.savetxt("uv1.txt", uv1)
-    # np.savetxt("uv2.txt", uv2)
-
-    draw_params = dict(matchColor = (0,255,0),
-                    singlePointColor = (255,0,0),
-                    matchesMask = matchesMask,
-                    flags = cv.DrawMatchesFlags_DEFAULT)
-
-    img3 = cv.drawMatchesKnn(img1,kp1,img2,kp2,matches,None,**draw_params)
-    # plt.imshow(img3,),plt.show()
 
     return p1, p2, des
 
@@ -255,16 +239,16 @@ def main():
 if __name__ == "__main__":
 
     # K = np.loadtxt("cam_matrix.txt")
-    spars = bundle_adjustment_sparsity(8, 4)
+    # spars = bundle_adjustment_sparsity(8, 4)
 
     # res_func = lambda p: residual(p, np.eye(3), K, np.ones((2,3)), 2*np.ones((2,3)))
 
     # test = jacobian(res_func, np.ones(6+9), eps = 1e-5).astype(bool).astype(int)
 
-    plt.imshow(spars.toarray())
-    plt.title("Bundle adjustment sparsity")
+    # plt.imshow(spars.toarray())
+    # plt.title("Bundle adjustment sparsity")
     # plt.colorbar()
     # plt.imshow(test)
-    plt.show()
+    # plt.show()
 
-    # main()
+    main()

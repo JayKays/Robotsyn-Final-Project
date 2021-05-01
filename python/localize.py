@@ -30,14 +30,12 @@ def match_image_to_model(X, model_des, img, using_rootsift, threshold = 0.75):
     matches = flann.knnMatch(model_des, query_des , k=2)
 
     # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
     good = []
 
     # ratio test as per Lowe's paper
     matched_idx = [False]*X.shape[1]
     for i,(m,n) in enumerate(matches):
         if m.distance < threshold*n.distance:
-            matchesMask[i]=[1,0]
             good.append(m)
             matched_idx[i] = True
     
