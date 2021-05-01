@@ -11,12 +11,17 @@ from util import *
 from part1 import undistort_img
 
 
-def FLANN_matching(img1, img2, threshold = 0.75):
+def FLANN_matching(img1, img2, using_rootsift, threshold = 0.75):
     # Initiate SIFT detector
     sift = cv.SIFT_create()
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img1,None)
     kp2, des2 = sift.detectAndCompute(img2,None)
+    if using_rootsift:
+        des1 /= des1.sum(axis=1, keepdims=True)
+        des1 = np.sqrt(des1)
+        des2 /= des2.sum(axis=1, keepdims=True)
+        des2 = np.sqrt(des2)
 
     # FLANN parameters
     FLANN_INDEX_KDTREE = 1
@@ -187,13 +192,14 @@ def main():
     np.random.seed(0)
 
     hw5_model = False
+    using_rootsift = False
 
     if hw5_model:
         img1 = cv.imread("../hw5_data_ext/IMG_8207.jpg", cv.IMREAD_GRAYSCALE)
         img2 = cv.imread("../hw5_data_ext/IMG_8227.jpg", cv.IMREAD_GRAYSCALE)
         K = np.loadtxt("../hw5_data_ext/K.txt")
 
-        p1, p2, des = FLANN_matching(img1, img2)
+        p1, p2, des = FLANN_matching(img1, img2, using_rootsift)
 
         X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
         
@@ -221,7 +227,7 @@ def main():
         # img1 = undistort_img(img1, K, dist, stdInt)
         # img2 = undistort_img(img2, K, dist, stdInt)
 
-        p1, p2, des = FLANN_matching(img1, img2)
+        p1, p2, des = FLANN_matching(img1, img2, using_rootsift)
 
         X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
         

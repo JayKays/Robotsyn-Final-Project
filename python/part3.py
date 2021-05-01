@@ -1,12 +1,13 @@
-from Monte_Carlo import *
+from Monte_Carlo import monte_carlo_std
 from localize import *
 from visualize_query_results import visualize_query_res
 from part1 import undistort_img
 
 
-def task31(K, X, model_des, query_img):
+def task31(K, X, model_des, query_img, using_rootsift):
 
-    p, J, world_points, img_points, R0 = localize(query_img, X, model_des, K)
+    p, J, world_points, img_points, R0 = localize(query_img, X, model_des, K, using_rootsift)
+
     T = pose(p, R0)
 
     visualize_query_res(X, world_points, img_points, K, query_img, T)
@@ -14,17 +15,17 @@ def task31(K, X, model_des, query_img):
 
     return
 
-def task32(K, X, model_des, query_img):
+def task32(K, X, model_des, query_img, using_rootsift):
     
-    _, J, _, _, _ = localize(query_img, X, model_des, K)
+    _, J, _, _, _ = localize(query_img, X, model_des, K, using_rootsift)
     # print(pose(p))
     std = pose_std(J)
 
     return unit_convertion(std)
 
-def task33(K, X, model_des, query_img):
+def task33(K, X, model_des, query_img, using_rootsift):
     
-    _, J, _, _, _ = localize(query_img, X, model_des, K, weighted = True)
+    _, J, _, _, _ = localize(query_img, X, model_des, K, using_rootsift, weighted = True)
 
     # print(pose(p))
 
@@ -33,9 +34,9 @@ def task33(K, X, model_des, query_img):
     return unit_convertion(std)
 
 
-def task34(K, X, model_des, query_img):
+def task34(K, X, model_des, query_img, using_rootsift):
 
-    p0, _, X, uv, R0 = localize(query_img, X, model_des, K)
+    p0, _, X, uv, R0 = localize(query_img, X, model_des, K, using_rootsift)
 
     std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
     std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
@@ -57,13 +58,13 @@ if __name__ == "__main__":
     np.random.seed(0)
 
     HW5_model = False
+    using_rootsift = False
     
     if HW5_model:
         K = np.loadtxt("../hw5_data_ext/K.txt")
         X = np.loadtxt("../HW5_3D_model/3D_points.txt")
         model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
         query_img = cv.imread("../hw5_data_ext/IMG_8214.jpg")
-
     else:
         K = np.loadtxt("cam_matrix.txt")
         X = np.loadtxt("../3D_model/3D_points.txt")
@@ -77,20 +78,20 @@ if __name__ == "__main__":
     img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
     img3 = cv.imread('../iCloud Photos/IMG_4003.JPEG')
 
-    # task31(K, X, model_des, img1)
-    # task31(K, X, model_des, img2)
-    # task31(K, X, model_des, img3)
+    task31(K, X, model_des, img1, using_rootsift)
+    task31(K, X, model_des, img2, using_rootsift)
+    task31(K, X, model_des, img3, using_rootsift)
 
-    # std1 = task32(K, X, model_des, img1)
-    # std2 = task32(K, X, model_des, img2)
-    # std3 = task32(K, X, model_des, img3)
+    # std1 = task32(K, X, model_des, img1, using_rootsift)
+    # std2 = task32(K, X, model_des, img2, using_rootsift)
+    # std3 = task32(K, X, model_des, img3, using_rootsift)
 
-    std1 = task33(K, X, model_des, img1)
-    std2 = task33(K, X, model_des, img2)
-    std3 = task33(K, X, model_des, img3)
+    # std1 = task33(K, X, model_des, img1, using_rootsift)
+    # std2 = task33(K, X, model_des, img2, using_rootsift)
+    # std3 = task33(K, X, model_des, img3, using_rootsift)
 
     # task34(K, X, model_des, img3)
 
-    print(std1)
-    print(std2)
-    print(std3)
+    # print(std1)
+    # print(std2)
+    # print(std3)
