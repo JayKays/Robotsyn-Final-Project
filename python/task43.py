@@ -31,11 +31,8 @@ def ORB_matching(img1, img2):
     # Sort them in the order of their distance.
     matches = sorted(matches, key = lambda x:x.distance)
 
-    # Need to draw only good matches, so create a mask
-    matchesMask = [[0,0] for i in range(len(matches))]
+    # Need to draw only good matches, using 3000 first
     good = []
-
-    # ratio test as per Lowe's paper
     for m in matches[:3000]:
         good.append(m)
 
@@ -53,8 +50,8 @@ def ORB_matching(img1, img2):
     print(f"Found {len(matches)} matches. Using {len(good)} matches with shortest distance.")
 
     # draw first 3000 matches
-    img3 = cv.drawMatches(image1_gray, kp1, image2_gray, kp2, matches[:3000], image2_gray, flags = 2)
-    plt.imshow(img3),plt.show()
+    # img3 = cv.drawMatches(image1_gray, kp1, image2_gray, kp2, matches[:3000], image2_gray, flags = 2)
+    # plt.imshow(img3),plt.show()
 
     return p1, p2, des
 
