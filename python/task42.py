@@ -1,9 +1,12 @@
 import numpy as np
+import glob
 from cv2 import cv2 as cv
-
+from pathlib import Path
 from HW5 import *
 from scipy.sparse import lil_matrix
 from scipy.optimize import least_squares
+from visualize_query_results import visualize_query_res
+from localize import localize, pose
 
 # def FLANN_matching(kp1, kp2, des1, des2, threshold = 0.75):
 def FLANN_matching(img1, img2, threshold = 0.75):
@@ -38,6 +41,8 @@ def FLANN_matching(img1, img2, threshold = 0.75):
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
 
     return p1, p2, des
+
+
 
 def realtive_scale(X1, X2, des1, des2, threshold = 0.75):
 
@@ -86,6 +91,7 @@ def match_multi_images(images, K, threshold = 0.75):
     # p1, p2, point_des = FLANN_matching(images[0], images[1])
     # X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
 
+
     for i in range(1,n):
         # p1, p2, point_des = FLANN_matching(kp[i-1], kp[i], des[i-1], des[i])
         p1, p2, point_des = FLANN_matching(images[i-1], images[i])
@@ -105,8 +111,8 @@ def match_multi_images(images, K, threshold = 0.75):
 
         des.append(point_des)
 
-        # T = T_opt @ T
-        T = T @ T_opt 
+        T = T_opt @ T
+        # T = T @ T_opt 
     
     return np.hstack([p for p in points]), np.vstack([d for d in des])
 
@@ -212,20 +218,59 @@ def pose(angles, translation, R0):
 
     return T
 
-if __name__ == "__main__":
+def save_model(X, des, uv, path):
+    np.savetxt(Path.joinpath(path,'3D_points.txt'), X)
+    np.savetxt(Path.joinpath(path,'descriptors'), np.array(des))
+    np.savetxt(Path.joinpath(path,'uv.txt'), uv)
 
-    # img_numbs = ['07', '28', '21', '13', '09']
-    img_numbs = ['07','28', '09', '10']#'11', '12', '13', '14']
+def generate_model(img_numbs):
 
     images = [cv.imread(f"../hw5_data_ext/IMG_82{img_numbs[i]}.jpg") for i in range(len(img_numbs))]
     K = np.loadtxt("../hw5_data_ext/K.txt")
 
     X, des = match_multi_images(images, K)
 
-    print(X.shape)
-    print(des.shape)
+    # print(X.shape)
+    # print(des.shape)
 
-    uv = np.vstack((project(K, X), np.ones(X.shape[1])))
+    img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
 
-    draw_point_cloud(X, images[0], uv, xlim=[-1.5,+1.5], ylim=[-1.5,+1.5], zlim=[0.5, 3.5])
+    uv = project(K, X).astype(np.int32)
+    # print(img.shape)
+    uv[0,:] = np.where(uv[0,:]< img.shape[1], uv[0,:], img.shape[1]-1)
+    uv[1,:] = np.where(uv[1,:]< img.shape[0], uv[1,:], img.shape[0]-1)
+
+    save_model(X, des, uv, Path('../Task42_model'))
+
+    draw_point_cloud(X, img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
     plt.show()
+
+if __name__ == "__main__":
+
+    img_numbs = ['07','27', '09', '10', '11']
+    query_numbs = ['12']#, '13', '14']
+
+    # generate_model(img_numbs)
+
+    K = np.loadtxt("../hw5_data_ext/K.txt")
+    X = np.loadtxt("../Task42_model/3D_points.txt")
+    model_des = np.loadtxt("../Task42_model/descriptors").astype("float32")
+
+    uv = np.loadtxt("../Task42_model/uv.txt")
+    model_img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
+
+    query_images = [cv.imread(f"../hw5_data_ext/IMG_82{query_numbs[i]}.jpg") for i in range(len(query_numbs))]
+
+    for img in query_images:
+
+        p, J, world_points, img_points, R0 = localize(img, X, model_des, K)
+        
+        T = pose(p, R0)
+
+        visualize_query_res(X, world_points, img_points, K, img, T, uv=uv, model_img=model_img)
+
+
+    # draw_point_cloud(X, img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
+    # plt.show()
+
+

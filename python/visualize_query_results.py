@@ -16,7 +16,7 @@ from localize import *
 # u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 # I       = plt.imread(f'{query}.jpg')         # Query image.
 
-def visualize_query_res(X, X_inliers, u, K, I, T_m2q):
+def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = None):
     # model_points = np.loadtxt("../3D_model/3D_points.txt")
     # # model_points[:3,:] *= 6
 
@@ -36,10 +36,14 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q):
     assert u.shape[0] == 2
 
     # If you have colors for your point cloud model, then you can use this.
-    model = '../visualization_sample_data'
-    c = np.loadtxt(f'{model}/c.txt') # RGB colors [shape: num_points x 3].
+    # model = '../visualization_sample_data'
+    # c = np.loadtxt(f'{model}/c.txt') # RGB colors [shape: num_points x 3].
     # Otherwise you can use this, which colors the points according to their Y.
-    # c = None
+
+    if uv is not None and model_img is not None:
+        c = model_img[uv1[1,:].astype(np.int32), uv1[0,:].astype(np.int32), :]
+    else: 
+        c = None
 
     # txt does not save datatype, so we do a conversion here.
     # matches = matches.astype(np.int32)

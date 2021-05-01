@@ -205,8 +205,8 @@ def main():
         img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
         img2 = plt.imread("../hw5_data_ext/IMG_8227.jpg")/255.
         # np.random.seed(123) # Comment out to get a random selection each time
-        plot_point_cloud(X, uv1, img1, find_colors = True)
-        draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
+        draw_point_cloud(X, img1, uv1, xlim=[-10,10], ylim=[-10,+10], zlim=[10, 25], find_colors=False)
+        # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
         plt.show()
 
     else:
@@ -249,14 +249,14 @@ def main():
 if __name__ == "__main__":
 
     # K = np.loadtxt("cam_matrix.txt")
-    spars = bundle_adjustment_sparsity(4, 5)
+    # spars = bundle_adjustment_sparsity(4, 5)
 
     # res_func = lambda p: residual(p, np.eye(3), K, np.ones((2,3)), 2*np.ones((2,3)))
 
     # test = jacobian(res_func, np.ones(6+9), eps = 1e-5).astype(bool).astype(int)
 
-    plt.imshow(spars.toarray())
+    # plt.imshow(spars.toarray())
     # plt.imshow(test)
-    plt.show()
+    # plt.show()
 
-    # main()
+    main()
