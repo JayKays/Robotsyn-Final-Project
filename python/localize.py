@@ -7,17 +7,20 @@ from HW5 import *
 from part2 import *
 
 
-def localize(query_img, X, model_des, K, refined = True, weighted = False):
+def localize(query_img, X, model_des, K, using_rootsift, refined = True, weighted = False):
 
-    img_points, world_points = match_image_to_model(X, model_des, query_img)
+    img_points, world_points = match_image_to_model(X, model_des, query_img, using_rootsift)
     p, world_points, img_points, J, R0 = estimate_pose(img_points.T, world_points, K, refined, weighted)
 
     return p, J, world_points, img_points, R0
 
-def match_image_to_model(X, model_des, img, threshold = 0.75):
+def match_image_to_model(X, model_des, img, using_rootsift, threshold = 0.75):
 
     sift = cv.SIFT_create()
     kp_query, query_des = sift.detectAndCompute(img, None)
+    if using_rootsift:
+        query_des /= query_des.sum(axis=1, keepdims=True)
+        query_des = np.sqrt(query_des)
 
     # FLANN parameters
     FLANN_INDEX_KDTREE = 1
@@ -75,7 +78,7 @@ def refine_pose(p0, X, uv, K, weights = None):
         res_fun = lambda p: weights @ np.ravel(project(K, pose(p, R0) @ X) - uv)
 
     res = least_squares(res_fun, p0, verbose=2)
-    p_opt = pose(res.x, R0)
+    p_opt = res.x
     J = res.jac
 
     # if weights is not None:
