@@ -29,7 +29,7 @@ def match_image_to_model(X, model_des, img, using_rootsift, threshold = 0.75):
     flann = cv.FlannBasedMatcher(index_params,search_params)
     matches = flann.knnMatch(model_des, query_des , k=2)
 
-    # Need to draw only good matches, so create a mask
+    # Need to draw only good matches
     good = []
 
     # ratio test as per Lowe's paper
@@ -78,9 +78,6 @@ def refine_pose(p0, X, uv, K, weights = None):
     res = least_squares(res_fun, p0, verbose=2)
     p_opt = res.x
     J = res.jac
-
-    # if weights is not None:
-    #     J = np.linalg.inv(weights) @ J
 
     return p_opt, J, R0
 

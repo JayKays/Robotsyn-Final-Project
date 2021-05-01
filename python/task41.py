@@ -16,7 +16,6 @@ def weighted_monte_carlo_pose_cov(K_bar, sig_K, p0, R0, uv, X, m = 500):
         
         K = K_bar + np.array([[params[0], 0, params[1]], [0,params[0],params[2]],[0,0,0]])
 
-        # res_fun = lambda p: np.ravel(project(K, pose(p[:3],p[3:]) @ X) - uv)
         res_fun = lambda p: residual(p, X, uv, K, sig_K, R0)
         res = least_squares(res_fun, p0)
         poses[i,:]= res.x
@@ -31,16 +30,6 @@ def weighted_monte_carlo_std(K, sig_K, p0, uv, X, R0, m = 500):
     std = np.sqrt(np.diagonal(cov))
 
     return std
-
-# def pose(p):
-#     rvec = p[:3]
-#     tvec = p[3:]
-#     R,_ = cv.Rodrigues(rvec)
-#     T = np.eye(4)
-#     T[:3,:3] = R
-#     T[:3,-1] = tvec
-
-#     return T
 
 def residual(p, X, uv, K, sig_K, R0):
 
@@ -67,17 +56,10 @@ def residual(p, X, uv, K, sig_K, R0):
 if __name__ == "__main__":
     np.random.seed(0)
 
-    # K = np.loadtxt("../hw5_data_ext/K.txt")
-    # X = np.loadtxt("../HW5_3D_model/3D_points.txt")
-    # model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
-    # query_img = cv.imread("../hw5_data_ext/IMG_8207.jpg")
-    # # X[:3,:] *= 6.2
     K = np.loadtxt("cam_matrix.txt")
     X = np.loadtxt("../3D_model/3D_points.txt")
     model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
-    distortion = np.loadtxt('dist.txt')
     query_img = cv.imread('../iCloud Photos/IMG_3982.JPEG')
-    # dist_std = np.loadtxt('stdInt.txt')
 
     p0, _, X, uv, R0 = localize(query_img, X, model_des, K)
     

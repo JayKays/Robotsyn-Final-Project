@@ -1,7 +1,6 @@
 from Monte_Carlo import monte_carlo_std
 from localize import *
 from visualize_query_results import visualize_query_res
-from part1 import undistort_img
 
 
 def task31(K, X, model_des, query_img, using_rootsift):

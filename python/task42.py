@@ -85,26 +85,11 @@ def match_multi_images(images, K, threshold = 0.75):
 
     n = len(images)
 
-    # sift = cv.SIFT_create()
-
-    # for i in range(n):
-    #     kp, des = sift.detectAndCompute(images[i], None)
-
-    #     img_des.append(des)
-
-    # print(len(img_des))
-    #Initial model from first 2 images
-    # p1, p2, point_des = FLANN_matching(images[0], images[1])
-    # X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
-
-
     for i in range(1,n):
-        # p1, p2, point_des = FLANN_matching(kp[i-1], kp[i], des[i-1], des[i])
+        
         p1, p2, point_des = FLANN_matching(images[i-1], images[i])
 
         X, point_des, pose, p1, p2 = model_points_from_match(p1, p2, point_des, K)
-
-        # print(len(points))
 
         if i > 1:
             scale = realtive_scale(points[i-2], X, des[i-2], point_des)
@@ -126,10 +111,10 @@ def match_multi_images(images, K, threshold = 0.75):
 
 
 def model_points_from_match(p1, p2, des, K):
-    # print(p2.shape)
+    
     uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
-    # print(uv1.shape)
+    
     xy1 = np.linalg.inv(K) @ uv1
     xy2 = np.linalg.inv(K) @ uv2
 
@@ -165,7 +150,7 @@ def bundle_adjustment(T, X, p1, p2, K):
     R0 = T[:3,:3]
     t0 = T[:3,-1]
     p0 = np.hstack(([0,0,0], t0, np.ravel(X[:3,:].T)))
-    # print(p0.shape)
+    
     n_points= uv1.shape[1]
 
     res_func = lambda p: residual(p, R0, K, uv1[:2,:], uv2[:2,:])
@@ -238,13 +223,10 @@ def generate_model(img_numbs,save = False):
 
     X, des = match_multi_images(images, K)
 
-    # print(X.shape)
-    # print(des.shape)
-
     img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
 
+    #uv used for coloring the model
     uv = project(K, X).astype(np.int32)
-    # print(img.shape)
     uv[0,:] = np.where(uv[0,:]< img.shape[1], uv[0,:], img.shape[1]-1)
     uv[1,:] = np.where(uv[1,:]< img.shape[0], uv[1,:], img.shape[0]-1)
 
@@ -323,11 +305,9 @@ if __name__ == "__main__":
 
         plt.subplot(330 + 3*i + 2)
         draw_model_and_query_pose(X, T, K, lookat1, lookfrom1, c=c)
-        # plt.title('Model and localized pose (top view)')
 
         plt.subplot(330 + 3*i + 3)
         draw_model_and_query_pose(X, T, K, lookat2, lookfrom2, c=c)
-        # plt.title('Model and localized pose (side view)')
 
     plt.tight_layout()
     plt.show()
