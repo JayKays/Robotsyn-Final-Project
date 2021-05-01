@@ -8,6 +8,7 @@ from HW5 import *
 from util import *
 from visualize_query_results import *
 from part2 import *
+from localize import *
 
 def ORB_matching(img1, img2):
     # Initiate ORB detector
@@ -45,10 +46,39 @@ def ORB_matching(img1, img2):
 
     return p1, p2, des
 
+
+
+def match_image_to_model(X, model_des, query_img, threshold = 0.75):
+
+
+    orb = cv.ORB_create(nfeatures = 40000) #specifying maximum nr of keypoints to locate
+
+    # img = cv.cvtColor(query_img, cv.COLOR_BGR2RGB)
+    img_gray = cv.cvtColor(query_img, cv.COLOR_BGR2GRAY)
+
+    # find the keypoints and descriptors with ORB
+    query_kp, query_des = orb.detectAndCompute(img_gray, None)
+
+    # create BFMatcher object
+    bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+
+    # Match descriptors.
+    matches = bf.match(model_des, query_des)
+
+    # Need to draw only good matches
+    matches = sorted(matches, key = lambda x:x.distance)
+    
+    matched_2D_points = np.array([query_kp[m.trainIdx].pt for m in matches[:5000]])
+
+    matched_3D_points = X[:,[m.queryIdx for m in matches]]
+
+    return matched_2D_points, matched_3D_points
+
 if __name__ == "__main__":
 
     img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
     img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
+    img3 = cv.imread('../iCloud Photos/IMG_3982.JPEG')
 
     K = np.loadtxt("cam_matrix.txt")
 
@@ -56,16 +86,22 @@ if __name__ == "__main__":
 
     X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
 
+
     T, X = bundle_adjustment(T, X, uv1, uv2, K)
 
-    save_model(X, des, Path('../3D_model'))
+    img_points, world_points = match_image_to_model(X, des, img3)
+    p, world_points, img_points, J, R0 = estimate_pose(img_points.T, world_points, K)
+    
+    X[:3,:] *= 8
+
+    save_model(X, des, Path('../ORB_model'))
 
     #Plotting results
     img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
     img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
 
     # np.random.seed(123) # Comment out to get a random selection each time
-    plot_point_cloud(X, uv1, img1)
-    draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
-    visualize_query_res(X, X, uv2[:2,:], K, img2, T)
+    draw_point_cloud(X, img1, uv1, xlim=[-10,+10], ylim=[-10,+10], zlim=[3, 35], find_colors=True)
+    # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
+    visualize_query_res(X, world_points, img_points, K, img3, pose(p,R0))
     plt.show()
