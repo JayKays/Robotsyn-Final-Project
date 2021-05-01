@@ -2,11 +2,17 @@ import numpy as np
 import glob
 from cv2 import cv2 as cv
 from pathlib import Path
+from matplotlib import pyplot as plt
+
 from HW5 import *
 from scipy.sparse import lil_matrix
 from scipy.optimize import least_squares
 from visualize_query_results import visualize_query_res
-from localize import localize, pose
+
+from localize import localize
+from util import draw_model_and_query_pose
+
+
 
 # def FLANN_matching(kp1, kp2, des1, des2, threshold = 0.75):
 def FLANN_matching(img1, img2, threshold = 0.75):
@@ -104,6 +110,9 @@ def match_multi_images(images, K, threshold = 0.75):
             scale = realtive_scale(points[i-2], X, des[i-2], point_des)
             pose[:3,-1] *= scale
             X[:3,:] *= scale
+        else:
+            pose[:3,-1] *= 5
+            X[:3,:] *= 5
 
         T_opt, X_opt = bundle_adjustment(pose, X, p1, p2, K)
         
@@ -168,7 +177,7 @@ def bundle_adjustment(T, X, p1, p2, K):
     p_opt = res['x']
     
     #Extracting camera pose and 3d points from bundle adjustment
-    T_opt = pose(p_opt[:3], p_opt[3:6], R0)
+    T_opt = pose(p_opt[:6], R0)
     X_opt = np.hstack((np.reshape(p_opt[6:], (n_points, 3)), np.ones((n_points,1)))).T
 
     return T_opt, X_opt
@@ -177,7 +186,7 @@ def residual(p, R0, K, uv1, uv2):
     n_points= uv1.shape[1]
 
     X = np.hstack((np.reshape(p[6:], (n_points, 3)), np.ones((n_points,1))))
-    T = pose(p[:3], p[3:6], R0)
+    T = pose(p[:6], R0)
 
     uv1_hat = project(K, X.T)
     uv2_hat = project(K, T @ X.T)
@@ -223,7 +232,7 @@ def save_model(X, des, uv, path):
     np.savetxt(Path.joinpath(path,'descriptors'), np.array(des))
     np.savetxt(Path.joinpath(path,'uv.txt'), uv)
 
-def generate_model(img_numbs):
+def generate_model(img_numbs,save = False):
 
     images = [cv.imread(f"../hw5_data_ext/IMG_82{img_numbs[i]}.jpg") for i in range(len(img_numbs))]
     K = np.loadtxt("../hw5_data_ext/K.txt")
@@ -240,37 +249,92 @@ def generate_model(img_numbs):
     uv[0,:] = np.where(uv[0,:]< img.shape[1], uv[0,:], img.shape[1]-1)
     uv[1,:] = np.where(uv[1,:]< img.shape[0], uv[1,:], img.shape[0]-1)
 
-    save_model(X, des, uv, Path('../Task42_model'))
+    if save:
+        save_model(X, des, uv, Path('../Task42_model'))
 
-    draw_point_cloud(X, img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
-    plt.show()
+    # draw_point_cloud(X, img, uv, xlim=[-10,10], ylim=[-10,+10], zlim=[10,30], find_colors=True)
+    # plt.show()
+
+
+def pose(p, R0):
+    s, c = np.sin, np.cos
+    Rx = lambda a: np.array([[1, 0, 0], [0, c(a), s(a)], [0, -s(a), c(a)]])
+    Ry = lambda a: np.array([[c(a), 0, -s(a)], [0, 1, 0], [s(a), 0, c(a)]])
+    Rz = lambda a: np.array([[c(a), s(a), 0], [-s(a), c(a), 0], [0, 0, 1]])
+
+    R = Rx(p[0]) @ Ry(p[1]) @ Rz(p[2]) @ R0
+    tvec = p[3:]
+
+    T = np.eye(4)
+    T[:3,:3] = R
+    T[:3,-1] = tvec
+
+    return T
 
 if __name__ == "__main__":
 
     img_numbs = ['07','27', '09', '10', '11']
-    query_numbs = ['12']#, '13', '14']
-
+    query_numbs = ['12', '13', '14']
+    Two_view_model = False
     # generate_model(img_numbs)
 
     K = np.loadtxt("../hw5_data_ext/K.txt")
-    X = np.loadtxt("../Task42_model/3D_points.txt")
-    model_des = np.loadtxt("../Task42_model/descriptors").astype("float32")
 
-    uv = np.loadtxt("../Task42_model/uv.txt")
-    model_img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
+    if Two_view_model:
+        X = np.loadtxt("../HW5_3D_model/3D_points.txt")
+        model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
+
+        #Used for coloring the point cloud
+        uv = np.loadtxt("../HW5_3D_model/uv.txt")
+        model_img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
+        c = model_img[uv[1,:].astype(np.int32), uv[0,:].astype(np.int32), :]
+
+        lookfrom1 = np.array((0,-20,-5))*2
+        lookat1   = np.array((0,0,6))
+        lookfrom2 = np.array((25,-15,-10))
+        lookat2   = np.array((0,0,10))
+    else:
+
+        X = np.loadtxt("../Task42_model/3D_points.txt")
+        model_des = np.loadtxt("../Task42_model/descriptors").astype("float32")
+        
+        #used for coloring the point cloud
+        uv = np.loadtxt("../Task42_model/uv.txt")
+        model_img = plt.imread(f"../hw5_data_ext/IMG_82{img_numbs[0]}.jpg")/255.
+        c = model_img[uv[1,:].astype(np.int32), uv[0,:].astype(np.int32), :]
+
+        lookfrom1 = np.array((0,-20,-5))*2
+        lookat1   = np.array((0,0,6))
+        lookfrom2 = np.array((25,-15,-10))
+        lookat2   = np.array((0,0,10))
 
     query_images = [cv.imread(f"../hw5_data_ext/IMG_82{query_numbs[i]}.jpg") for i in range(len(query_numbs))]
 
-    for img in query_images:
+    fig = plt.figure(figsize=(15,10))
 
-        p, J, world_points, img_points, R0 = localize(img, X, model_des, K)
-        
+    for i in range(len(query_images)):
+
+        p, J, world_points, img_points, R0 = localize(query_images[i], X, model_des, K, False)
+
         T = pose(p, R0)
+        
+        #Plot estimated pose and query image
+        plt.subplot(330 + 3*i + 1)
+        plt.imshow(plt.imread(f"../hw5_data_ext/IMG_82{query_numbs[i]}.jpg"))
 
-        visualize_query_res(X, world_points, img_points, K, img, T, uv=uv, model_img=model_img)
+        plt.subplot(330 + 3*i + 2)
+        draw_model_and_query_pose(X, T, K, lookat1, lookfrom1, c=c)
+        # plt.title('Model and localized pose (top view)')
+
+        plt.subplot(330 + 3*i + 3)
+        draw_model_and_query_pose(X, T, K, lookat2, lookfrom2, c=c)
+        # plt.title('Model and localized pose (side view)')
+
+    plt.tight_layout()
+    plt.show()
 
 
-    # draw_point_cloud(X, img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
-    # plt.show()
+    # draw_point_cloud(X, model_img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
+    # # plt.show()
 
 

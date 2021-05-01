@@ -16,7 +16,7 @@ from localize import *
 # u       = np.loadtxt(f'{query}_u.txt')       # Image location of features detected in query image (produced by your localization script).
 # I       = plt.imread(f'{query}.jpg')         # Query image.
 
-def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = None):
+def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = None, view_points = None):
     # model_points = np.loadtxt("../3D_model/3D_points.txt")
     # # model_points[:3,:] *= 6
 
@@ -41,7 +41,7 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = Non
     # Otherwise you can use this, which colors the points according to their Y.
 
     if uv is not None and model_img is not None:
-        c = model_img[uv1[1,:].astype(np.int32), uv1[0,:].astype(np.int32), :]
+        c = model_img[uv[1,:].astype(np.int32), uv[0,:].astype(np.int32), :]
     else: 
         c = None
 
@@ -53,10 +53,17 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = Non
     # of the virtual figure camera, in the two views.
     # You will probably need to change these to work
     # with your scene.
-    lookfrom1 = np.array((0,-20,5))
-    lookat1   = np.array((0,0,6))
-    lookfrom2 = np.array((25,-5,10))
-    lookat2   = np.array((0,0,10))
+    
+    if view_points is not None:
+        lookfrom1 = np.array((0,-20,-5))/2
+        lookat1   = np.array((0,0,6))/2
+        lookfrom2 = np.array((25,-15,-10))/2
+        lookat2   = np.array((0,0,10))/2
+    else:
+        lookfrom1 = view_points[0]
+        lookat1   = view_points[1]
+        lookfrom2 = view_points[2]
+        lookat2   = view_points[3]
 
     u_inliers = u
     # X_inliers = X
@@ -79,11 +86,11 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = Non
     plt.xlabel('Reprojection error (pixels)')
 
     plt.subplot(223)
-    draw_model_and_query_pose(X, T_m2q, K, lookat1, lookfrom1, c=None)
+    draw_model_and_query_pose(X, T_m2q, K, lookat1, lookfrom1, c=c)
     plt.title('Model and localized pose (top view)')
 
     plt.subplot(224)
-    draw_model_and_query_pose(X, T_m2q, K, lookat2, lookfrom2, c=None)
+    draw_model_and_query_pose(X, T_m2q, K, lookat2, lookfrom2, c=c)
     plt.title('Model and localized pose (side view)')
 
     plt.tight_layout()

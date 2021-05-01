@@ -255,14 +255,16 @@ def main():
 if __name__ == "__main__":
 
     # K = np.loadtxt("cam_matrix.txt")
-    # spars = bundle_adjustment_sparsity(4, 5)
+    spars = bundle_adjustment_sparsity(8, 4)
 
     # res_func = lambda p: residual(p, np.eye(3), K, np.ones((2,3)), 2*np.ones((2,3)))
 
     # test = jacobian(res_func, np.ones(6+9), eps = 1e-5).astype(bool).astype(int)
 
-    # plt.imshow(spars.toarray())
+    plt.imshow(spars.toarray())
+    plt.title("Bundle adjustment sparsity")
+    # plt.colorbar()
     # plt.imshow(test)
-    # plt.show()
+    plt.show()
 
-    main()
+    # main()
