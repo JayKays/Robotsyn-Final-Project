@@ -32,17 +32,13 @@ def ORB_matching(img1, img2):
     # Sort them in the order of their distance.
     matches = sorted(matches, key = lambda x:x.distance)
 
-    # Need to draw only good matches, using 3000 first
+    # Need to draw only good matches, using 4500 best
     p1 = np.array([kp1[m.queryIdx].pt for m in matches[:4500]])
     p2 = np.array([kp2[m.trainIdx].pt for m in matches[:4500]])
 
     des = des1[[m.queryIdx for m in matches[:4500]], :]
 
     print(f"Found {len(matches)} matches. Using {len(p1)} matches with shortest distance.")
-
-    # draw first 3000 matches
-    # img3 = cv.drawMatches(image1_gray, kp1, image2_gray, kp2, matches[:3000], image2_gray, flags = 2)
-    # plt.imshow(img3),plt.show()
 
     return p1, p2, des
 
@@ -51,9 +47,8 @@ def ORB_matching(img1, img2):
 def match_image_to_model(X, model_des, query_img, threshold = 0.75):
 
 
-    orb = cv.ORB_create(nfeatures = 100000) #specifying maximum nr of keypoints to locate
+    orb = cv.ORB_create(nfeatures = 120000) #specifying maximum nr of keypoints to locate
 
-    # img = cv.cvtColor(query_img, cv.COLOR_BGR2RGB)
     img_gray = cv.cvtColor(query_img, cv.COLOR_BGR2GRAY)
 
     # find the keypoints and descriptors with ORB
@@ -99,7 +94,6 @@ if __name__ == "__main__":
     img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
     img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
 
-    # draw_point_cloud(X, img1, uv1, xlim=[-10,+10], ylim=[-10,+10], zlim=[3, 35], find_colors=True)
-    # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
     visualize_query_res(X, world_points, img_points, K, img3, pose(p,R0))
     plt.savefig("ORB_kuk.eps", format='eps')
+    plt.show()

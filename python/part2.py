@@ -14,9 +14,11 @@ from part1 import undistort_img
 def FLANN_matching(img1, img2, using_rootsift, threshold = 0.75):
     # Initiate SIFT detector
     sift = cv.SIFT_create()
+
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img1,None)
     kp2, des2 = sift.detectAndCompute(img2,None)
+
     if using_rootsift:
         des1 /= des1.sum(axis=1, keepdims=True)
         des1 = np.sqrt(des1)
@@ -107,10 +109,10 @@ def bundle_adjustment_sparsity(n_points, n_cameras = 2):
 
 
 def generate_model(p1, p2, K, des):
-    # print(p2.shape)
+    
     uv1 = np.vstack((p1.T, np.ones(p1.shape[0])))
     uv2 = np.vstack((p2.T, np.ones(p2.shape[0])))
-    # print(uv1.shape)
+    
     xy1 = np.linalg.inv(K) @ uv1
     xy2 = np.linalg.inv(K) @ uv2
 
@@ -188,8 +190,7 @@ def main():
         img1 = plt.imread("../hw5_data_ext/IMG_8207.jpg")/255.
         img2 = plt.imread("../hw5_data_ext/IMG_8227.jpg")/255.
         
-        draw_point_cloud(X, img1, uv1, xlim=[-10,10], ylim=[-10,+10], zlim=[10, 25], find_colors=False)
-        # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
+        draw_point_cloud(X, img1, uv1, xlim=[-10,10], ylim=[-10,+10], zlim=[10, 25], find_colors=True)
         plt.show()
 
     else:
@@ -212,7 +213,6 @@ def main():
 
         save_model(X, des, Path('../3D_model'))
     
-
         #Plotting results
         img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
         img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
@@ -227,4 +227,9 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    sparsity = bundle_adjustment_sparsity(3)
+    plt.imshow(sparsity.toarray())
+    plt.title("Jacobian Sparsity")
+    plt.show()
+
+    # main()

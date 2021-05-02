@@ -24,12 +24,9 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = Non
     lookfrom2 = np.array((25,-15,-10))
     lookat2   = np.array((0,0,10))
 
-    u_inliers = u
-    # X_inliers = X
-
     u_hat = project(K, T_m2q @ X_inliers)
-    e = np.linalg.norm(u_hat - u_inliers, axis=0)
-
+    e = np.linalg.norm(u_hat - u, axis=0)
+    print(f"Mean reprojection error: {np.mean(e)}")
     fig = plt.figure(figsize=(10,8))
 
     plt.subplot(221)
@@ -53,6 +50,6 @@ def visualize_query_res(X, X_inliers, u, K, I, T_m2q, uv = None, model_img = Non
     plt.title('Model and localized pose (side view)')
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
 
 

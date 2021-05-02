@@ -41,7 +41,6 @@ def match_image_to_model(X, model_des, img, using_rootsift, threshold = 0.75):
     
     print(f"Found {len(good)} matches with distance threshold = {threshold}")
 
-    matched_idx = [m.queryIdx for m in good]
     matched_2D_points = np.array([kp_query[m.trainIdx].pt for m in good])
     matched_3D_points = X[:,matched_idx]
 

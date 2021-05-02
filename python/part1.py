@@ -5,17 +5,17 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 def calibration(images):
+
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((7*10,3), np.float32)
     objp[:,:2] = np.mgrid[0:7,0:10].T.reshape(-1,2)
+
     # Arrays to store object points and image points from all the images.
     objpoints = [] # 3d point in real world space
     imgpoints = [] # 2d points in image plane.
-    # images = glob.glob('../calibration_photos2/*.JPEG') # IMG_3896 to IMG_3914
-
-    #images = images[:10] + images[12:] # comment in remove shity pictures 11 and 12
 
     for fname in images:
 
@@ -47,7 +47,7 @@ def calibration(images):
         error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
         mean_error.append(error)
 
-        imgpoints2 = np.array(imgpoints2)   # converting to numpy arrays to get shit to work cuz fk normal arrays
+        imgpoints2 = np.array(imgpoints2) 
         imgpoints2 = imgpoints2[:,0,:]
         imgpoints1 = np.array(imgpoints[i])
         imgpoints1 = imgpoints1[:,0,:]
@@ -68,9 +68,6 @@ def calibration(images):
     plt.savefig("Reprojection_scatter")
     plt.show()
 
-    # _,_,_,_,_,stdDeviationsIntrinsics,stdDeviationsExtrinsics,perViewErrors = \
-    #     cv.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], mtx, dist)
-
     print('Standard errors')
     print('Focal length and principal point')
     print('--------------------------------')
@@ -90,27 +87,6 @@ def calibration(images):
     np.savetxt('dist.txt', dist)
     np.savetxt('stdInt.txt', std_int)
     np.savetxt('stdExt.txt', std_ext)
-
-def undistort(K, dist,stdInt):
-    img = cv.imread('../calibration_photos/IMG_3896.JPEG')
-    img_resized = cv.resize(img, (1400, 700))
-
-    normal_dist = np.random.normal(dist, stdInt.T[5:10])
-
-    cv.imshow('vanilla image', img_resized)
-    cv.waitKey(10000)
-    cv.destroyAllWindows()
-
-    h, w = img.shape[:2]
-
-    #Undistort
-    undistorted = cv.undistort(img, K, dist, None, newK)
-
-    dist[4:9] = dist[4:9] + stdInt[4:9].T
-
-    # undistort
-    dst = cv.undistort(img, K, dist, None, newcameramtx)
-    
 
 def undistort_img(img, K, distortion, dist_std, random_dist = False):
     '''Undistorts and displays a given image'''
@@ -152,7 +128,6 @@ if __name__ == "__main__":
     # print(stdInt)
     # print(dist)
 
-    # undistort(K, dist, stdInt)
     # img_resized = cv.resize(img, (1440, 960))
     # cv.imshow('Original image', img_resized)
     # cv.waitKey(-1)

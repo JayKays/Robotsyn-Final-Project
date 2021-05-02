@@ -10,14 +10,14 @@ def task31(K, X, model_des, query_img, using_rootsift):
     T = pose(p, R0)
 
     visualize_query_res(X, world_points, img_points, K, query_img, T)
-    # print(p)
+    plt.show()
 
     return
 
 def task32(K, X, model_des, query_img, using_rootsift):
     
     _, J, _, _, _ = localize(query_img, X, model_des, K, using_rootsift)
-    # print(pose(p))
+
     std = pose_std(J)
 
     return unit_convertion(std)
@@ -25,8 +25,6 @@ def task32(K, X, model_des, query_img, using_rootsift):
 def task33(K, X, model_des, query_img, using_rootsift):
     
     _, J, _, _, _ = localize(query_img, X, model_des, K, using_rootsift, weighted = True)
-
-    # print(pose(p))
 
     std = pose_std(J)
 
@@ -63,16 +61,12 @@ if __name__ == "__main__":
         K = np.loadtxt("../hw5_data_ext/K.txt")
         X = np.loadtxt("../HW5_3D_model/3D_points.txt")
         model_des = np.loadtxt("../HW5_3D_model/descriptors").astype("float32")
-        query_img = cv.imread("../hw5_data_ext/IMG_8214.jpg")
+        
     else:
         K = np.loadtxt("cam_matrix.txt")
         X = np.loadtxt("../3D_model/3D_points.txt")
         model_des = np.loadtxt("../3D_model/descriptors").astype("float32")
-        distortion = np.loadtxt('dist.txt')
-        query_img = cv.imread('../iCloud Photos/IMG_3982.JPEG')
-        # dist_std = np.loadtxt('stdInt.txt')
-
-    # undistort_img(img, K, distortion, None)
+    
     img1 = cv.imread('../iCloud Photos/IMG_3982.JPEG')
     img2 = cv.imread('../iCloud Photos/IMG_3983.JPEG')
     img3 = cv.imread('../iCloud Photos/IMG_4003.JPEG')

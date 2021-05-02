@@ -63,10 +63,11 @@ if __name__ == "__main__":
 
     p0, _, X, uv, R0 = localize(query_img, X, model_des, K)
     
+    #Non weighted monte carlo for comparison
     std1 = monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
     std2 = monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
     std3 = monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X, R0)
-
+    
     std1_w = weighted_monte_carlo_std(K, [50, 0.1, 0.1], p0, uv, X, R0)
     std2_w = weighted_monte_carlo_std(K, [0.1, 50, 0.1], p0, uv, X, R0)
     std3_w = weighted_monte_carlo_std(K, [0.1, 0.1, 50], p0, uv, X, R0)

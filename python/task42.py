@@ -13,11 +13,11 @@ from localize import localize
 from util import draw_model_and_query_pose
 
 
-
-# def FLANN_matching(kp1, kp2, des1, des2, threshold = 0.75):
 def FLANN_matching(img1, img2, threshold = 0.75):
+
     # Initiate SIFT detector
     sift = cv.SIFT_create()
+
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img1,None)
     kp2, des2 = sift.detectAndCompute(img2,None)
@@ -254,9 +254,11 @@ def pose(p, R0):
 
 if __name__ == "__main__":
 
-    img_numbs = ['07','27', '09', '10', '11']
-    query_numbs = ['12', '13', '14']
     Two_view_model = False
+
+    img_numbs = ['07', '27'] if Two_view_model else ['07','27', '09', '10', '11']
+    query_numbs = ['12', '13', '14']
+
     # generate_model(img_numbs)
 
     K = np.loadtxt("../hw5_data_ext/K.txt")
@@ -311,9 +313,3 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-
-
-    # draw_point_cloud(X, model_img, uv, xlim=[-2,+2], ylim=[-2,+2], zlim=[1,6], find_colors=True)
-    # # plt.show()
-
-
