@@ -12,7 +12,7 @@ from localize import *
 
 def ORB_matching(img1, img2):
     # Initiate ORB detector
-    orb = cv.ORB_create(nfeatures = 40000) #specifying maximum nr of keypoints to locate
+    orb = cv.ORB_create(nfeatures = 120000) #specifying maximum nr of keypoints to locate
 
     image1 = cv.cvtColor(img1, cv.COLOR_BGR2RGB)
     image2 = cv.cvtColor(img2, cv.COLOR_BGR2RGB)
@@ -33,10 +33,10 @@ def ORB_matching(img1, img2):
     matches = sorted(matches, key = lambda x:x.distance)
 
     # Need to draw only good matches, using 3000 first
-    p1 = np.array([kp1[m.queryIdx].pt for m in matches[:3000]])
-    p2 = np.array([kp2[m.trainIdx].pt for m in matches[:3000]])
+    p1 = np.array([kp1[m.queryIdx].pt for m in matches[:4500]])
+    p2 = np.array([kp2[m.trainIdx].pt for m in matches[:4500]])
 
-    des = des1[[m.queryIdx for m in matches[:3000]], :]
+    des = des1[[m.queryIdx for m in matches[:4500]], :]
 
     print(f"Found {len(matches)} matches. Using {len(p1)} matches with shortest distance.")
 
@@ -51,7 +51,7 @@ def ORB_matching(img1, img2):
 def match_image_to_model(X, model_des, query_img, threshold = 0.75):
 
 
-    orb = cv.ORB_create(nfeatures = 40000) #specifying maximum nr of keypoints to locate
+    orb = cv.ORB_create(nfeatures = 100000) #specifying maximum nr of keypoints to locate
 
     # img = cv.cvtColor(query_img, cv.COLOR_BGR2RGB)
     img_gray = cv.cvtColor(query_img, cv.COLOR_BGR2GRAY)
@@ -68,13 +68,13 @@ def match_image_to_model(X, model_des, query_img, threshold = 0.75):
     # Need to draw only good matches
     matches = sorted(matches, key = lambda x:x.distance)
     
-    matched_2D_points = np.array([query_kp[m.trainIdx].pt for m in matches[:5000]])
-
-    matched_3D_points = X[:,[m.queryIdx for m in matches]]
+    matched_2D_points = np.array([query_kp[m.trainIdx].pt for m in matches[:4000]])
+    matched_3D_points = X[:,[m.queryIdx for m in matches[:4000]]]
 
     return matched_2D_points, matched_3D_points
 
 if __name__ == "__main__":
+    np.random.seed(0) # Comment out to get a random selection each time
 
     img1 = cv.imread('../iCloud Photos/IMG_3980.JPEG')
     img2 = cv.imread('../iCloud Photos/IMG_3981.JPEG')
@@ -85,7 +85,6 @@ if __name__ == "__main__":
     p1, p2, des = ORB_matching(img1, img2)
 
     X, des, T, uv1, uv2, E = generate_model(p1, p2, K, des)
-
 
     T, X = bundle_adjustment(T, X, uv1, uv2, K)
 
@@ -100,8 +99,7 @@ if __name__ == "__main__":
     img1 = plt.imread("../iCloud Photos/IMG_3980.JPEG")/255.
     img2 = plt.imread("../iCloud Photos/IMG_3981.JPEG")/255.
 
-    # np.random.seed(123) # Comment out to get a random selection each time
-    draw_point_cloud(X, img1, uv1, xlim=[-10,+10], ylim=[-10,+10], zlim=[3, 35], find_colors=True)
+    # draw_point_cloud(X, img1, uv1, xlim=[-10,+10], ylim=[-10,+10], zlim=[3, 35], find_colors=True)
     # draw_correspondences(img1, img2, uv1, uv2, F_from_E(E, K), sample_size=8)
     visualize_query_res(X, world_points, img_points, K, img3, pose(p,R0))
-    plt.show()
+    plt.savefig("ORB_kuk.eps", format='eps')
